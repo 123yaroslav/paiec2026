@@ -1,0 +1,17 @@
+487 variants
+benchmarks 150 with 2+ subjects 136
+tc1.2_td0.6_ex2.0_bw0.03_ks3.0_g0.3 ALC 0.20877 vs beta -0.00463 (se 0.00028) per budget [0.2489, 0.229, 0.2114, 0.1986, 0.1895, 0.1818]
+tc1.2_td0.6_ex2.0_bw0.03_ks1.5_g0.3 ALC 0.20879 vs beta -0.00460 (se 0.00027) per budget [0.2489, 0.2286, 0.2113, 0.1988, 0.1898, 0.1822]
+tc1.2_td0.8_ex2.0_bw0.03_ks3.0_g0.3 ALC 0.20881 vs beta -0.00459 (se 0.00024) per budget [0.2489, 0.2292, 0.2115, 0.1986, 0.1894, 0.1817]
+tc0.9_td0.8_ex2.0_bw0.03_ks3.0_g0.3 ALC 0.20882 vs beta -0.00457 (se 0.00026) per budget [0.2489, 0.2291, 0.2116, 0.1987, 0.1894, 0.1817]
+tc1.2_td0.8_ex2.0_bw0.03_ks1.5_g0.3 ALC 0.20885 vs beta -0.00455 (se 0.00023) per budget [0.2489, 0.2288, 0.2114, 0.1988, 0.1898, 0.1821]
+tc1.2_td0.6_ex2.0_bw0.02_ks3.0_g0.3 ALC 0.20889 vs beta -0.00451 (se 0.00028) per budget [0.2489, 0.2287, 0.2113, 0.1989, 0.1899, 0.1824]
+tc1.2_td0.8_ex2.0_bw0.02_ks3.0_g0.3 ALC 0.20889 vs beta -0.00450 (se 0.00024) per budget [0.2489, 0.2288, 0.2114, 0.1989, 0.1898, 0.1822]
+tc1.2_td0.6_ex2.0_bw0.02_ks1.5_g0.3 ALC 0.20890 vs beta -0.00450 (se 0.00027) per budget [0.2489, 0.2285, 0.2113, 0.199, 0.19, 0.1825]
+tc0.9_td0.6_ex2.0_bw0.05_ks3.0_g0.3 ALC 0.20891 vs beta -0.00449 (se 0.00028) per budget [0.249, 0.2294, 0.2115, 0.1986, 0.1896, 0.1821]
+tc1.2_td0.6_ex2.0_bw0.05_ks1.5_g0.3 ALC 0.20892 vs beta -0.00448 (se 0.00026) per budget [0.2489, 0.2289, 0.2114, 0.1988, 0.1899, 0.1825]
+tc1.2_td0.6_ex2.0_bw0.03_ks1.0_g0.3 ALC 0.20893 vs beta -0.00447 (se 0.00026) per budget [0.2489, 0.2286, 0.2113, 0.199, 0.1901, 0.1825]
+/Users/yaroslav/.venvs/rsna-knee/bin/python sim_official.py --emb  --draws 40  6545.72s user 25.57s system 898% cpu 12:11.25 total
+head -12  0.00s user 0.00s system 0% cpu 12:10.76 total
+
+[exited with code 0]

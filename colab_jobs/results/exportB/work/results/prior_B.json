@@ -1,0 +1,1 @@
+{"work": "/content/work", "out": "/content/work/results", "folds": 5, "epochs": 4, "batch": 8192, "lr": 0.002, "wd": 0.0001, "hidden": 256, "rank": 32, "dropout": 0.1, "bench_offset": 1, "tag": "B", "ds": 386, "di": 385}

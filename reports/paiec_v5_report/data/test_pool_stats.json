@@ -1,0 +1,40 @@
+{
+ "test_pool": {
+  "runs": [
+   1003760,
+   1032881,
+   1032882
+  ],
+  "group_evaluations": 26,
+  "mean_pq": 0.1361130454698846,
+  "mean_pq_b31_check": 0.13611308666403846,
+  "max_abs_pq_disagreement": 6.512469999941928e-07,
+  "max_side_residual": 5.551115123125783e-17,
+  "mean_p": 0.18900226923076918,
+  "median_p": 0.170262,
+  "share_above_half": 0.0,
+  "bin_share": [
+   0.115,
+   0.077,
+   0.231,
+   0.308,
+   0.269
+  ]
+ },
+ "train": {
+  "all": {
+   "groups": 8765,
+   "benchmarks": 150,
+   "mean_pq": 0.18410874656213805,
+   "mean_p": 0.5104493343733206,
+   "share_above_half": 0.5546729552998625
+  },
+  "recent_2025_07": {
+   "groups": 328,
+   "benchmarks": 35,
+   "mean_pq": 0.17191863737321833,
+   "mean_p": 0.6144683850887613,
+   "share_above_half": 0.6826417233560091
+  }
+ }
+}

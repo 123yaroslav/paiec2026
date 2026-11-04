@@ -1,0 +1,12 @@
+._*
+.DS_Store
+__pycache__/
+*.pyc
+/data/
+/dist/
+/private/
+colab_jobs/results/exportB/work/results/pairs_z.parquet
+reports/paiec_v5_report/*.aux
+reports/paiec_v5_report/*.log
+reports/paiec_v5_report/*.out
+reports/paiec_v5_report/build_tmp/

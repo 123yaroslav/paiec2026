@@ -1,0 +1,10 @@
+{
+ "_note": "Numbers reported by the experiment runs of 4 November that are not recomputed by the report scripts. Each entry names its source.",
+ "judge_sim_best_weight": {"value": 0.2, "source": "sim_official.py --ratings judge_partial, test weights, rated items only"},
+ "judge_sim_gain": {"value": 0.00035, "source": "same run, ALC improvement over the model without the judge"},
+ "colab_units_own": {"value": 25.8, "source": "colab_jobs/ledger.jsonl via ctl.py, 4 Nov evening"},
+ "l5_runtime_seconds_per_draw_m4": {"value": 40, "source": "local runtime replay of L5 on an Apple M4 CPU"},
+ "grid_tuning_draws": {"value": 400, "source": "487-configuration grid of 4 Nov, sim_official.py --draws 400"},
+ "queue_stall_almaty": {"value": "about 18:30, 4 November", "source": "Codabench submission status"},
+ "pending_runs": {"value": {"L5": 3, "V2": 2}, "source": "scripts/resubmit.py receipts"}
+}

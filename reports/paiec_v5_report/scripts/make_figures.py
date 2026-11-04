@@ -1,0 +1,104 @@
+"""Draw fig_budget.pdf from data/confirm_rows.npz (saved simulator output).
+
+usage: python -B scripts/make_figures.py
+"""
+
+from pathlib import Path
+
+import matplotlib
+
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt  # noqa: E402
+import numpy as np  # noqa: E402
+import pandas as pd  # noqa: E402
+
+HERE = Path(__file__).resolve().parents[1]
+STYLE = Path.home() / ".claude/skills/ml-paper-writing/scripts/paper.mplstyle"
+if STYLE.exists():
+    plt.style.use(str(STYLE))
+d = np.load(HERE / "data/confirm_rows.npz")
+draw = d["draw_id"]
+x = np.log2(1 + d["budgets"])
+labels = [str(b) for b in d["budgets"]]
+COLORS = {"beta11": "#000000", "level": "#0072B2", "level_exact": "#E69F00",
+          "level_exact_kernel": "#009E73", "full": "#D55E00", "full_gamma1": "#CC79A7"}
+NAMES = {"beta11": "Beta(1,1)", "level": "level model", "level_exact": "+ same item",
+         "level_exact_kernel": "+ similar items", "full": "+ prior, $\\gamma$=0.3 (L2c)",
+         "full_gamma1": "prior at $\\gamma$=1"}
+
+
+def per_draw_mean(rows):
+    return pd.DataFrame(rows).groupby(draw).mean().to_numpy()
+
+
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(5.5, 2.3))
+for name in ("beta11", "full", "full_gamma1"):
+    m = per_draw_mean(d[name])
+    mu, se = m.mean(0), m.std(0, ddof=1) / np.sqrt(len(m))
+    ax1.plot(x, mu, marker="o", color=COLORS[name], lw=1.3, ms=3)
+    ax1.fill_between(x, mu - 1.96 * se, mu + 1.96 * se, color=COLORS[name], alpha=0.15, lw=0)
+ax1.axhline(0.25, color="#999999", lw=0.8, ls="--")
+ax1.text(5, 0.2515, "constant 0.5", ha="right", va="bottom", fontsize=7, color="#666666")
+ax1.text(2.05, 0.2275, "Beta(1,1)", fontsize=7.5, color=COLORS["beta11"], ha="left", va="bottom")
+ax1.text(4.1, 0.1955, "L2c", fontsize=7.5, color=COLORS["full"], ha="left", va="bottom")
+ax1.text(0.35, 0.2555, "prior at $\\gamma$=1", fontsize=7.5, color=COLORS["full_gamma1"], ha="left", va="bottom")
+ax1.set_xticks(x, labels)
+ax1.set_xlabel("labels revealed per group")
+ax1.set_ylabel("Brier score")
+ax1.set_ylim(0.175, 0.262)
+ax1.set_title("(a) Brier per budget")
+
+base = per_draw_mean(d["beta11"])
+for k, name in enumerate(("level", "level_exact", "level_exact_kernel", "full", "full_gamma1")):
+    diff = per_draw_mean(d[name]) - base
+    mu, se = diff.mean(0), diff.std(0, ddof=1) / np.sqrt(len(diff))
+    off = (k - 2) * 0.07
+    ax2.errorbar(x + off, mu, yerr=1.96 * se, color=COLORS[name], marker="o", ms=2.5, lw=1.1,
+                 capsize=1.5, label=NAMES[name])
+ax2.axhline(0, color=COLORS["beta11"], lw=0.8)
+ax2.set_xticks(x, labels)
+ax2.set_xlabel("labels revealed per group")
+ax2.set_ylabel("Brier minus Beta(1,1)")
+ax2.set_title("(b) Gain over Beta(1,1)")
+ax2.legend(loc="upper right", fontsize=6.5, handlelength=1.2, borderaxespad=0.2, labelspacing=0.25)
+ax2.set_ylim(-0.0095, 0.0115)
+fig.savefig(HERE / "fig_budget.pdf")
+print("wrote fig_budget.pdf")
+
+# ---------------------------------------------------------------- Figure 2: test-pool calibration and final ladder
+import json  # noqa: E402
+
+lad = json.loads((HERE / "data/ladder_summary.json").read_text())
+off = np.array(json.loads((HERE / "data/official_beta_per_budget.json").read_text()))
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(5.5, 2.3))
+for run in off:
+    ax1.plot(x, run, color="#999999", lw=0.8, marker="o", ms=2, alpha=0.8)
+ax1.plot(x, off.mean(0), color="#000000", lw=1.4, marker="o", ms=3)
+ax1.plot(x, lad["all_conf"]["beta_pb_un"], color="#0072B2", lw=1.3, ls="--", marker="s", ms=2.5)
+ax1.plot(x, lad["all_conf"]["beta_pb_own"], color="#D55E00", lw=1.3, marker="s", ms=2.5)
+ax1.text(2.6, 0.224, "simulator, unweighted", fontsize=7, color="#0072B2", ha="left")
+ax1.text(0.1, 0.126, "simulator, test weights", fontsize=7, color="#D55E00", ha="left")
+ax1.text(3.05, 0.177, "official runs\n(mean in black)", fontsize=7, color="#000000", ha="left", va="center")
+ax1.set_xticks(x, labels)
+ax1.set_xlabel("labels revealed per group")
+ax1.set_ylabel("Brier score of Beta baseline")
+ax1.set_title("(a) Calibrating the simulator")
+ax1.set_ylim(0.12, 0.26)
+
+COL2 = {"L1c": "#0072B2", "L3": "#E69F00", "L4": "#009E73", "L5": "#D55E00"}
+LAB2 = {"L1c": "L1c (narrow, same item)", "L3": "L3 (wide, + kernel, E5)", "L4": "L4 (+ date)", "L5": "L5 (+ name), final"}
+res = lad["recent_conf"]
+for k, n in enumerate(("L1c", "L3", "L4", "L5")):
+    mu = np.array([m for m, s in res[f"{n}_pbdiff_own"]])
+    se = np.array([s for m, s in res[f"{n}_pbdiff_own"]])
+    ax2.errorbar(x + (k - 1.5) * 0.07, mu, yerr=1.96 * se, color=COL2[n], marker="o", ms=2.5, lw=1.1,
+                 capsize=1.5, label=LAB2[n])
+ax2.axhline(0, color="#000000", lw=0.8)
+ax2.set_xticks(x, labels)
+ax2.set_xlabel("labels revealed per group")
+ax2.set_ylabel("Brier minus Beta(1,1)")
+ax2.set_title("(b) Test weights, recent subjects")
+ax2.legend(loc="upper center", ncol=2, fontsize=6.0, handlelength=1.2, borderaxespad=0.1, labelspacing=0.25, columnspacing=0.8)
+ax2.set_ylim(-0.0165, 0.0085)
+fig.savefig(HERE / "fig_testpool.pdf")
+print("wrote fig_testpool.pdf")

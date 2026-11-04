@@ -1,0 +1,9 @@
+benchmarks 150 with 2+ subjects 136
+beta11               ALC 0.21260 diff +0.00000 (+0.00%) se_groups 0.00000 se_draws 0.00000 per budget [0.25, 0.23198, 0.21594, 0.20222, 0.19364, 0.18844]
+beta22               ALC 0.21283 diff +0.00023 (+0.11%) se_groups 0.00017 se_draws 0.00019 per budget [0.25, 0.23252, 0.21617, 0.20252, 0.19372, 0.18847]
+level                ALC 0.21089 diff -0.00171 (-0.80%) se_groups 0.00017 se_draws 0.00016 per budget [0.25, 0.22879, 0.21279, 0.20069, 0.19301, 0.18832]
+level_exact          ALC 0.20997 diff -0.00263 (-1.24%) se_groups 0.00019 se_draws 0.00018 per budget [0.25, 0.22872, 0.21253, 0.19994, 0.19132, 0.18465]
+level_exact_kernel   ALC 0.20891 diff -0.00369 (-1.73%) se_groups 0.00021 se_draws 0.00022 per budget [0.25, 0.22894, 0.21222, 0.19884, 0.18909, 0.18096]
+full                 ALC 0.20872 diff -0.00388 (-1.82%) se_groups 0.00023 se_draws 0.00023 per budget [0.24918, 0.22851, 0.21215, 0.1988, 0.18907, 0.181]
+prior_only           ALC 0.21065 diff -0.00195 (-0.92%) se_groups 0.00019 se_draws 0.00019 per budget [0.24918, 0.22837, 0.21267, 0.2006, 0.1929, 0.18826]
+full_gamma1          ALC 0.21262 diff +0.00002 (+0.01%) se_groups 0.00035 se_draws 0.00037 per budget [0.25786, 0.2334, 0.21585, 0.20172, 0.19154, 0.18329]

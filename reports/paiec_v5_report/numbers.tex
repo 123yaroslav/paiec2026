@@ -129,21 +129,21 @@
 \newcommand{\ConfNine}{119}
 \newcommand{\ConfEight}{385}
 \newcommand{\ConfSeven}{96}
-\newcommand{\OffTables}{10}
+\newcommand{\OffTables}{18}
 \newcommand{\OffPairsMin}{44}
 \newcommand{\OffPairsMax}{76}
-\newcommand{\OffPairsLarge}{2}
+\newcommand{\OffPairsLarge}{3}
 \newcommand{\OffPairsLargeValue}{113}
-\newcommand{\OffTablesNine}{8}
-\newcommand{\OffTablesEight}{2}
-\newcommand{\OffGroupEvals}{88}
-\newcommand{\OffDistinctGroups}{70}
+\newcommand{\OffTablesNine}{13}
+\newcommand{\OffTablesEight}{5}
+\newcommand{\OffGroupEvals}{157}
+\newcommand{\OffDistinctGroups}{105}
 \newcommand{\OffDistinctBench}{7}
-\newcommand{\OffBetaLaterN}{3}
-\newcommand{\OffBetaAllSd}{0.0174}
-\newcommand{\OffBetaLaterRuns}{0.2190, 0.1777, 0.1835}
-\newcommand{\OffBetaLaterMean}{0.1934}
-\newcommand{\TabBetaLaterRow}{Beta(2,2), runs after model selection & 3 & 0.2190, 0.1777, 0.1835 & 0.1934 (0.0129) \\}
+\newcommand{\OffBetaLaterN}{5}
+\newcommand{\OffBetaAllSd}{0.0161}
+\newcommand{\OffBetaLaterRuns}{0.2190, 0.1777, 0.1835, 0.2017, 0.1790}
+\newcommand{\OffBetaLaterMean}{0.1922}
+\newcommand{\TabBetaLaterRow}{Beta(2,2), later runs & 5 & 0.2190, 0.1777, 0.1835, 0.2017, 0.1790 & 0.1922 (0.0080) \\}
 \newcommand{\OffBetaN}{3}
 \newcommand{\OffBetaMean}{0.1778}
 \newcommand{\OffBetaSd}{0.0085}
@@ -152,11 +152,19 @@
 \newcommand{\OffBetaRange}{0.0169}
 \newcommand{\OffVtwo}{0.1695}
 \newcommand{\UnscoredAsOf}{5 November 03:04 UTC}
-\newcommand{\TabVtwoRuns}{1 (2 not started)}
-\newcommand{\TabVtwoAlc}{0.1695}
-\newcommand{\TabVtwoMean}{}
-\newcommand{\OffVtwoN}{1}
-\newcommand{\TabLfiveRuns}{0 (4 not started)}
+\newcommand{\TabVtwoRuns}{5}
+\newcommand{\TabVtwoAlc}{0.1695, 0.1790, 0.2013, 0.1644, 0.1983}
+\newcommand{\TabVtwoMean}{0.1825 (0.0075)}
+\newcommand{\OffVtwoN}{5}
+\newcommand{\OffVtwoMean}{0.1825}
+\newcommand{\OffVtwoBzeroMean}{0.2488}
+\newcommand{\TabVthreeRuns}{3}
+\newcommand{\TabVthreeAlc}{0.1711, 0.2172, 0.1861}
+\newcommand{\TabVthreeMean}{0.1914 (0.0136)}
+\newcommand{\OffVthreeN}{3}
+\newcommand{\OffVthreeMean}{0.1914}
+\newcommand{\OffVthreeBzeroMean}{0.2510}
+\newcommand{\TabLfiveRuns}{0 (4 queued)}
 \newcommand{\TabLfiveAlc}{none}
 \newcommand{\TabLfiveMean}{}
 \newcommand{\OffLfiveN}{0}
@@ -168,12 +176,12 @@
 \newcommand{\OffBetaBlastMax}{0.153}
 \newcommand{\RunsNeededLow}{268}
 \newcommand{\RunsNeededHigh}{602}
-\newcommand{\RunsNeededOurs}{316}
+\newcommand{\RunsNeededOurs}{270}
 \newcommand{\SpreadRatio}{13}
-\newcommand{\OffBetaAllN}{6}
-\newcommand{\OffBetaAllRuns}{0.1867, 0.1698, 0.1769, 0.2190, 0.1777, 0.1835}
-\newcommand{\OffBetaAllMean}{0.1856}
-\newcommand{\OffBetaAllSe}{0.0071}
+\newcommand{\OffBetaAllN}{8}
+\newcommand{\OffBetaAllRuns}{0.1867, 0.1698, 0.1769, 0.2190, 0.1777, 0.1835, 0.2017, 0.1790}
+\newcommand{\OffBetaAllMean}{0.1868}
+\newcommand{\OffBetaAllSe}{0.0057}
 \newcommand{\OffBetaAllRange}{0.0493}
 \newcommand{\RunsNeededPaired}{18}
 \newcommand{\BestOfTwentyShift}{0.030}
@@ -199,11 +207,19 @@
 1004759 & V2 & 9 & 7 & 0.1695 & 0.2536 & 0.1330 \\
 1004796 & V3 & 9 & 7 & 0.1711 & 0.2401 & 0.1478 \\
 1004970 & V3 with uncertainty band & 9 & 7 & 0.1876 & 0.2341 & 0.1644 \\
+1032873 & V2 & 8 & 7 & 0.1790 & 0.2480 & 0.1484 \\
+1032874 & V2 & 9 & 7 & 0.2013 & 0.2472 & 0.1699 \\
+1032875 & V2 & 8 & 7 & 0.1644 & 0.2452 & 0.1303 \\
+1032876 & V2 & 9 & 7 & 0.1983 & 0.2502 & 0.1802 \\
+1032877 & V3 & 9 & 7 & 0.2172 & 0.2709 & 0.1843 \\
+1032878 & V3 & 9 & 7 & 0.1861 & 0.2421 & 0.1594 \\
 1032881 & Beta(2,2) baseline & 9 & 7 & 0.1698 & 0.2500 & 0.1277 \\
 1032882 & Beta(2,2) baseline & 8 & 7 & 0.1769 & 0.2500 & 0.1533 \\
 1034630 & Beta(2,2) baseline & 9 & 7 & 0.2190 & 0.2500 & 0.1824 \\
 1034631 & Beta(2,2) baseline & 9 & 7 & 0.1777 & 0.2500 & 0.1404 \\
-1034661 & Beta(2,2) baseline & 9 & 7 & 0.1835 & 0.2500 & 0.1429 \\}
+1034661 & Beta(2,2) baseline & 9 & 7 & 0.1835 & 0.2500 & 0.1429 \\
+1034696 & Beta(2,2) baseline & 9 & 7 & 0.2017 & 0.2500 & 0.1735 \\
+1034704 & Beta(2,2) baseline & 8 & 7 & 0.1790 & 0.2500 & 0.1426 \\}
 \newcommand{\TpGroups}{26}
 \newcommand{\TpPq}{0.136}
 \newcommand{\TrainPq}{0.184}
@@ -214,10 +230,10 @@
 \newcommand{\RecentGroups}{328}
 \newcommand{\RecentBench}{35}
 \newcommand{\TpShareOwn}{0.115, 0.077, 0.231, 0.308, 0.269}
-\newcommand{\TpLaterGroups}{27}
-\newcommand{\TpLaterShare}{0.185, 0.222, 0.148, 0.148, 0.296}
-\newcommand{\TpLaterPq}{0.151}
-\newcommand{\TpPooledGroups}{53}
+\newcommand{\TpLaterGroups}{44}
+\newcommand{\TpLaterShare}{0.227, 0.159, 0.159, 0.182, 0.273}
+\newcommand{\TpLaterPq}{0.152}
+\newcommand{\TpPooledGroups}{70}
 \newcommand{\TpShareSim}{0.115, 0.077, 0.192, 0.308, 0.308}
 \newcommand{\TpFarShare}{58}
 \newcommand{\TpExtremeN}{7}
@@ -1015,26 +1031,26 @@
 \newcommand{\PairRCExactStepOSe}{0.0000}
 \newcommand{\SimBtwoRCU}{0.2105}
 \newcommand{\SimBtwoRCO}{0.1841}
-\newcommand{\ShLaterRCLfiveBeta}{$-$0.0058}
-\newcommand{\ShLaterRCLfiveBetaAbs}{0.0058}
+\newcommand{\ShLaterRCLfiveBeta}{$-$0.0057}
+\newcommand{\ShLaterRCLfiveBetaAbs}{0.0057}
 \newcommand{\ShLaterRCLfiveBetaSe}{0.0003}
-\newcommand{\ShLaterRCLfiveLtwoc}{$-$0.0006}
-\newcommand{\ShLaterRCLfiveLtwocAbs}{0.0006}
+\newcommand{\ShLaterRCLfiveLtwoc}{$-$0.0005}
+\newcommand{\ShLaterRCLfiveLtwocAbs}{0.0005}
 \newcommand{\ShLaterRCLfiveLtwocSe}{0.0002}
-\newcommand{\ShLaterRCLfiveBtwo}{$-$0.0091}
-\newcommand{\ShLaterRCLfiveBtwoAbs}{0.0091}
+\newcommand{\ShLaterRCLfiveBtwo}{$-$0.0089}
+\newcommand{\ShLaterRCLfiveBtwoAbs}{0.0089}
 \newcommand{\ShLaterRCLfiveBtwoSe}{0.0004}
-\newcommand{\ShLaterRCSimBtwo}{0.1958}
-\newcommand{\ShPooledRCLfiveBeta}{$-$0.0065}
-\newcommand{\ShPooledRCLfiveBetaAbs}{0.0065}
-\newcommand{\ShPooledRCLfiveBetaSe}{0.0003}
-\newcommand{\ShPooledRCLfiveLtwoc}{$-$0.0014}
-\newcommand{\ShPooledRCLfiveLtwocAbs}{0.0014}
+\newcommand{\ShLaterRCSimBtwo}{0.1967}
+\newcommand{\ShPooledRCLfiveBeta}{$-$0.0063}
+\newcommand{\ShPooledRCLfiveBetaAbs}{0.0063}
+\newcommand{\ShPooledRCLfiveBetaSe}{0.0002}
+\newcommand{\ShPooledRCLfiveLtwoc}{$-$0.0012}
+\newcommand{\ShPooledRCLfiveLtwocAbs}{0.0012}
 \newcommand{\ShPooledRCLfiveLtwocSe}{0.0002}
-\newcommand{\ShPooledRCLfiveBtwo}{$-$0.0109}
-\newcommand{\ShPooledRCLfiveBtwoAbs}{0.0109}
+\newcommand{\ShPooledRCLfiveBtwo}{$-$0.0103}
+\newcommand{\ShPooledRCLfiveBtwoAbs}{0.0103}
 \newcommand{\ShPooledRCLfiveBtwoSe}{0.0004}
-\newcommand{\ShPooledRCSimBtwo}{0.1901}
+\newcommand{\ShPooledRCSimBtwo}{0.1921}
 \newcommand{\BootRCLfiveBetaLo}{$-$0.0089}
 \newcommand{\BootRCLfiveBetaLoAbs}{0.0089}
 \newcommand{\BootRCLfiveBetaHi}{$-$0.0056}
@@ -1118,26 +1134,26 @@
 \newcommand{\PairACExactStepOSe}{0.0000}
 \newcommand{\SimBtwoACU}{0.2136}
 \newcommand{\SimBtwoACO}{0.1826}
-\newcommand{\ShLaterACLfiveBeta}{$-$0.0041}
-\newcommand{\ShLaterACLfiveBetaAbs}{0.0041}
-\newcommand{\ShLaterACLfiveBetaSe}{0.0003}
-\newcommand{\ShLaterACLfiveLtwoc}{$-$0.0008}
-\newcommand{\ShLaterACLfiveLtwocAbs}{0.0008}
+\newcommand{\ShLaterACLfiveBeta}{$-$0.0040}
+\newcommand{\ShLaterACLfiveBetaAbs}{0.0040}
+\newcommand{\ShLaterACLfiveBetaSe}{0.0002}
+\newcommand{\ShLaterACLfiveLtwoc}{$-$0.0007}
+\newcommand{\ShLaterACLfiveLtwocAbs}{0.0007}
 \newcommand{\ShLaterACLfiveLtwocSe}{0.0002}
-\newcommand{\ShLaterACLfiveBtwo}{$-$0.0078}
-\newcommand{\ShLaterACLfiveBtwoAbs}{0.0078}
+\newcommand{\ShLaterACLfiveBtwo}{$-$0.0074}
+\newcommand{\ShLaterACLfiveBtwoAbs}{0.0074}
 \newcommand{\ShLaterACLfiveBtwoSe}{0.0004}
-\newcommand{\ShLaterACSimBtwo}{0.1937}
-\newcommand{\ShPooledACLfiveBeta}{$-$0.0046}
-\newcommand{\ShPooledACLfiveBetaAbs}{0.0046}
+\newcommand{\ShLaterACSimBtwo}{0.1947}
+\newcommand{\ShPooledACLfiveBeta}{$-$0.0044}
+\newcommand{\ShPooledACLfiveBetaAbs}{0.0044}
 \newcommand{\ShPooledACLfiveBetaSe}{0.0003}
-\newcommand{\ShPooledACLfiveLtwoc}{$-$0.0016}
-\newcommand{\ShPooledACLfiveLtwocAbs}{0.0016}
+\newcommand{\ShPooledACLfiveLtwoc}{$-$0.0013}
+\newcommand{\ShPooledACLfiveLtwocAbs}{0.0013}
 \newcommand{\ShPooledACLfiveLtwocSe}{0.0002}
-\newcommand{\ShPooledACLfiveBtwo}{$-$0.0092}
-\newcommand{\ShPooledACLfiveBtwoAbs}{0.0092}
+\newcommand{\ShPooledACLfiveBtwo}{$-$0.0087}
+\newcommand{\ShPooledACLfiveBtwoAbs}{0.0087}
 \newcommand{\ShPooledACLfiveBtwoSe}{0.0004}
-\newcommand{\ShPooledACSimBtwo}{0.1883}
+\newcommand{\ShPooledACSimBtwo}{0.1903}
 \newcommand{\BootACLfiveBetaLo}{$-$0.0067}
 \newcommand{\BootACLfiveBetaLoAbs}{0.0067}
 \newcommand{\BootACLfiveBetaHi}{$-$0.0035}

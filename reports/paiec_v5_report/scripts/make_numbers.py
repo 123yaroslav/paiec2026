@@ -200,6 +200,8 @@ put("OffPairsLarge", sum(1 for n in all_pairs if n > 100))
 put("OffPairsLargeValue", max(all_pairs))
 put("OffTablesNine", sum(1 for r in runs if r["groups"] == 9 and r["multi"][:2] == [2, 2]))
 put("OffTablesEight", sum(1 for r in runs if r["groups"] == 8))
+assert all(r["benchmarks"] == 7 for r in runs) and \
+    sum(1 for r in runs if r["groups"] == 9 and r["multi"][:2] == [2, 2]) + sum(1 for r in runs if r["groups"] == 8) == len(runs)
 put("OffGroupEvals", sum(r["groups"] for r in runs))
 put("OffDistinctGroups", len(all_groups))
 put("OffDistinctBench", len(all_bench))
@@ -220,7 +222,7 @@ put("OffBetaAllSd", statistics.stdev(beta_runs + later_beta), ".4f")
 put("OffBetaLaterRuns", ", ".join(f"{v:.4f}" for v in later_beta))
 if later_beta:
     put("OffBetaLaterMean", statistics.fmean(later_beta), ".4f")
-OUT["TabBetaLaterRow"] = (rf"Beta(2,2), runs after model selection & {len(later_beta)} & "
+OUT["TabBetaLaterRow"] = (rf"Beta(2,2), later runs & {len(later_beta)} & "
                           + ", ".join(f"{v:.4f}" for v in later_beta)
                           + (f" & {statistics.fmean(later_beta):.4f} ({statistics.stdev(later_beta) / math.sqrt(len(later_beta)):.4f})"
                              if len(later_beta) > 1 else " & ") + r" \\") if later_beta else ""
@@ -239,14 +241,18 @@ finished_ids = {r["id"] for r in runs}
 waiting = [w for w in unscored["waiting"] if w["id"] not in finished_ids]
 checked = datetime.datetime.strptime(unscored["checked_utc"], "%Y-%m-%dT%H:%MZ")
 OUT["UnscoredAsOf"] = f"{checked.day} {checked:%B} {checked:%H:%M} UTC"
-for archive, name in [("semantic_selected_bundled.zip", "Vtwo"), ("L5_wide_date_name.zip", "Lfive")]:
+for archive, name in [("semantic_selected_bundled.zip", "Vtwo"), ("semantic_v3_bundled.zip", "Vthree"),
+                      ("L5_wide_date_name.zip", "Lfive")]:
     alcs = [r["alc"] for r in sorted(runs, key=lambda r: r["id"]) if r["archive"] == archive]
     n_wait = sum(1 for w in waiting if w["archive"] == archive)
-    OUT[f"Tab{name}Runs"] = f"{len(alcs)}" + (f" ({n_wait} not started)" if n_wait else "")
+    OUT[f"Tab{name}Runs"] = f"{len(alcs)}" + (f" ({n_wait} queued)" if n_wait else "")
     OUT[f"Tab{name}Alc"] = ", ".join(f"{v:.4f}" for v in alcs) if alcs else "none"
     OUT[f"Tab{name}Mean"] = (f"{statistics.fmean(alcs):.4f} ({statistics.stdev(alcs) / math.sqrt(len(alcs)):.4f})"
                              if len(alcs) > 1 else "")
     put(f"Off{name}N", len(alcs))
+    if alcs:
+        put(f"Off{name}Mean", statistics.fmean(alcs), ".4f")
+        put(f"Off{name}BzeroMean", statistics.fmean(r["b0"] for r in runs if r["archive"] == archive), ".4f")
 l5_alcs = [r["alc"] for r in runs if r["archive"] == "L5_wide_date_name.zip"]
 if l5_alcs:
     OUT["LfiveOfficialSentence"] = (

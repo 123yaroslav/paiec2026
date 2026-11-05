@@ -55,7 +55,8 @@ def main():
     for sid, archive in sorted(submissions().items()):
         feed = FEED / f"{sid}_scoring_stdout.txt"
         if not feed.exists():
-            if state.get(str(sid)) in ("Failed", "Cancelled"):
+            # A cancelled run can still be picked up from the queue later, so only Failed is final.
+            if state.get(str(sid)) == "Failed":
                 continue
             try:
                 info = cb.api(f"submissions/{sid}/", token=token)

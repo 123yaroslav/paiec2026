@@ -28,7 +28,7 @@ The Predictive AI Evaluation Competition (PAIEC) scores predicted probabilities 
 We report four findings from building our entry.
 First, a prior learned from task and system text with a frozen multilingual encoder (E5) on \NBenchKept\ public benchmarks transfers almost nothing to held-out benchmarks, and its score, a weighted area under the Brier learning curve (ALC), stays within \LoboBRelAbs\% of a \BB\ baseline that uses only the revealed labels.
 Second, sharing labels across systems on the same benchmark and across identical or similar items lowers ALC by \ConfFullRelAbs\% in a simulator of the official draws.
-Third, the official practice-phase (formative) test pool is more extreme than the training data. The feedback of a constant-prediction baseline reveals each group's distance from 50\% accuracy, and reweighting simulated groups to match it moves the simulated score of this baseline from \SimBtwoACU\ to \SimBtwoACO, against \OffBetaMean\ on the platform.
+Third, the official practice-phase (formative) test pool is more extreme than the training data. The feedback of a constant-prediction baseline reveals each group's distance from 50\% accuracy, and reweighting simulated groups to match it moves the simulated score of this baseline from \SimBtwoACU\ to \SimBtwoACO, against a mean of \OffBetaAllMean\ over \OffBetaAllN\ official runs.
 Under this calibration a wider prior and priors from release date and model name help, and our final model lowers ALC by \LadRCOLfiveRelAbs\% (standard error \LadRCOLfiveSeRel\%) on fresh simulated draws of recent systems.
 A Beta prior tuned to this pool recovers less than a tenth of that gain, and without label sharing across systems the final model loses \PairRCShareOAbs\ of its \LadRCOLfiveAbs\ ALC gain.
 Fourth, official runs of one baseline spread by \OffBetaAllRange\ over \OffBetaAllN\ draws and the leaderboard keeps each team's best run, so we compare submissions by repeated runs.
@@ -43,7 +43,7 @@ Each evaluation run scores a random \emph{draw} of about nine groups (Section~\r
 
 The obvious approach learns a prior from the text of items and subject descriptions on public benchmarks and adapts it to the revealed labels.
 Our earlier entries V2 and V3 followed it with frozen E5 embeddings and four or five training benchmarks~\citep{prevreport}.
-On its official draw, V2 had a Brier score of \OffVtwoBzero\ before any label was revealed, worse than the 0.25 of a constant prediction of 0.5.
+Over \OffVtwoN\ official runs, V2 averaged a Brier score of \OffVtwoBzeroMean\ before any label was revealed, close to the 0.25 of a constant prediction of 0.5.
 We asked whether more data fixes this and trained on \NBenchKept\ binary benchmarks of measurement-db, about \TrialRatio\ times more recorded responses than V3.
 It did not. In leave-benchmark-out simulation the best prior weight $\gamma$ was the smallest value we tried, and ALC matched the label-only \BB\ baseline within \LoboBRelAbs\% (Section~\ref{sec:res-prior}).
 
@@ -52,7 +52,7 @@ The \emph{level model} fits a benchmark offset from the labels of every subject 
 A same-item shift uses labels of other subjects on the same item, and a similar-item shift uses labels of items with close E5 embeddings.
 On fresh simulated draws this lowered ALC by \ConfFullAbs\ (\ConfFullRelAbs\%), and \ConfShareStructure\% of the gain remained without the text prior (Figure~\ref{fig:budget}, Section~\ref{sec:res-structure}).
 
-Our simulator first missed the official level badly. It gave the official \BB\ baseline an ALC of \SimBtwoACU, while three official runs averaged \OffBetaMean.
+Our simulator first missed the official level badly. It gave the official \BB\ baseline an ALC of \SimBtwoACU, while its \OffBetaAllN\ official runs averaged \OffBetaAllMean.
 The reason is the test pool. Because the baseline predicts one constant per group, its official Brier and calibration scores reveal every group's distance from 50\% accuracy, and test groups are far more extreme than training groups (Section~\ref{sec:testpool}).
 Reweighting simulated groups to this distribution reproduces the official baseline curve (Figure~\ref{fig:testpool}a).
 It also changes the best model. The narrow prior chosen before is no better than \BB\ under these weights, while a wider prior and offsets from release date and model name help.
@@ -198,9 +198,9 @@ The upward shift of our date prior rests on training data and the curation guide
 \emph{Test weights} reweight simulated groups so that their $|p-0.5|$ bins match these shares. The tuning grids used an earlier estimate (\TpShareSim) that placed one group in a different bin, and all confirmation runs use the shares above.
 With test weights the simulated official baseline, Beta(2,2), scores \SimBtwoACO\ on all subjects and \SimBtwoRCO\ on recent subjects, against \SimBtwoACU\ and \SimBtwoRCU\ without them.
 The three official runs average \OffBetaMean\ (standard error \OffBetaSe), and the calibrated curve follows the official one at every budget (Figure~\ref{fig:testpool}a).
-Later runs, made after the model choice and not used for the weights, scored \OffBetaLaterRuns.
+Later runs, made after the model choice and not used for the weights, scored \OffBetaLaterRuns, and all \OffBetaAllN\ runs average \OffBetaAllMean\ (standard error \OffBetaAllSe).
 The matching curve is a consistency check, not an independent test. Once the shares of $|p-0.5|$ match, the curve of a constant-per-group baseline follows mostly from group sizes and the split, so it does not validate the ranking of models.
-Single official runs of V2 (\OffVtwo) and V3 (\OffVthree) lie within one run's standard deviation (\OffBetaAllSd) of the replay prediction that both score close to \BB\ (Section~\ref{sec:res-testpool}).
+The \OffVtwoN\ official runs of V2 average \OffVtwoMean\ and the \OffVthreeN\ of V3 average \OffVthreeMean, both within one standard error of the Beta(2,2) mean \OffBetaAllMean, as the replay predicts (Section~\ref{sec:res-testpool}).
 Only these aggregate statistics enter model selection.
 
 \section{Evaluation protocols}
@@ -232,7 +232,7 @@ Each Codabench submission is scored on a new random draw. We upload an archive o
 In all three training variants the best prior weight was $\gamma=0.3$, the smallest value in the grid, and ALC fell steadily as $\gamma$ shrank (Table~\ref{tab:lobo}).
 Variant B, with free benchmark offsets during training, reached \LoboB\ against \LoboBeta\ for \BB, a difference of \LoboBRel\%.
 On a subset of at most 600 items per benchmark, Qwen3-Embedding-0.6B~\citep{qwen3emb} gave \BakeQwen\ against \BakeEfive\ for E5 and \BakeBeta\ for \BB. One set of draws per run gives no standard error, so we read the gap between encoders as no evidence either way.
-The prior moves mainly budget 0. At $\gamma=0.3$ it lowered the simulated budget-0 Brier score from 0.25 to \ConfFullBzero, and at full weight it raised it to \ConfGammaOneBzero\ (Figure~\ref{fig:budget}a), in line with V2's official \OffVtwoBzero.
+The prior moves mainly budget 0. At $\gamma=0.3$ it lowered the simulated budget-0 Brier score from 0.25 to \ConfFullBzero, and at full weight it raised it to \ConfGammaOneBzero\ (Figure~\ref{fig:budget}a). V2's official runs averaged \OffVtwoBzeroMean.
 A zero-shot LLM judge did no better. Difficulty ratings by Qwen3-8B~\citep{qwen3} improved simulated ALC by only \JudgeSimGain\ and hurt budget 0, so the judge is not used (Appendix~\ref{app:judge}).
 
 \begin{table}[t]
@@ -338,17 +338,17 @@ The final evaluation scores each team once on a common set, so the mean is the r
 
 \begin{table}[t]
 \centering
-\caption{\textbf{Formative scores are single draws or small samples.} Official Brier ALC per run, lower is better, each on its own draw of 8 or 9 groups. Not started means queued on \UnscoredAsOf.}
+\caption{\textbf{Formative scores are single draws or small samples.} Official Brier ALC per run, lower is better, each on its own draw of 8 or 9 groups. Weight runs set the test weights. Later runs were made after the model choice. Queued means not started on \UnscoredAsOf.}
 \label{tab:formative}
 \small
-\begin{tabular}{lcll}
+\begin{tabular}{lcp{5.6cm}l}
 \toprule
 Archive & Runs & ALC per run & Mean (s.e.) \\
 \midrule
-\BB, Beta(2,2) & \OffBetaN & \OffBetaRuns & \OffBetaMean\ (\OffBetaSe) \\
+Beta(2,2), weight runs & \OffBetaN & \OffBetaRuns & \OffBetaMean\ (\OffBetaSe) \\
 \TabBetaLaterRow
 V2 & \TabVtwoRuns & \TabVtwoAlc & \TabVtwoMean \\
-V3 & 1 & \OffVthree & \\
+V3 & \TabVthreeRuns & \TabVthreeAlc & \TabVthreeMean \\
 L5, final & \TabLfiveRuns & \TabLfiveAlc & \TabLfiveMean \\
 \bottomrule
 \end{tabular}
@@ -502,7 +502,7 @@ In the simulator on rated items with test weights, the best weight of \JudgeSimW
 \section{Formative runs}
 \label{app:formative}
 Table~\ref{tab:allruns} lists every finished formative run of our team. V1 and the V3 variant with an uncertainty band are earlier entries not described here.
-\begin{table}[h]
+\begin{table}[ht]
 \centering
 \caption{\textbf{All finished formative runs.} Means over groups of one draw each. $B_0$ and $B_{31}$ are mean Brier scores at budgets 0 and 31.}
 \label{tab:allruns}
@@ -520,7 +520,7 @@ Submission & Archive & Groups & Benchmarks & ALC & $B_0$ & $B_{31}$ \\
 \label{app:disclosure}
 \paragraph{Training sources.} All training and development data come from measurement-db at revision \texttt{54074453da7b9911be0f48e4c560be547bc84d21}, restricted to the \NBenchKept\ binary benchmarks of Section~\ref{sec:data}. No other data source was used for training, tuning or simulation. The test weights use aggregate statistics of our own formative feedback (Section~\ref{sec:testpool}). Earlier entries V2 and V3 used four and five benchmarks of the same inventory~\citep{prevreport}.
 \paragraph{Pretrained models.} No model was fine-tuned, and no paid API was used. Table~\ref{tab:models} lists every pretrained model we ran.
-\begin{table}[h]
+\begin{table}[ht]
 \centering
 \caption{\textbf{Pretrained models used in this work.} Only E5 runs inside the submission.}
 \label{tab:models}

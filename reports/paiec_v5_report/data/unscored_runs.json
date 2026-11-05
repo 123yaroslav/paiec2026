@@ -1,40 +1,34 @@
 {
- "checked_utc": "2026-11-05T03:04Z",
+ "checked_utc": "2026-11-05T17:44Z",
  "waiting": [
   {
-   "id": 1032873,
-   "archive": "semantic_selected_bundled.zip",
-   "created": "2026-11-04T13:26Z",
-   "status": "Submitted"
-  },
-  {
-   "id": 1032874,
-   "archive": "semantic_selected_bundled.zip",
-   "created": "2026-11-04T13:26Z",
-   "status": "Submitted"
-  },
-  {
-   "id": 1033031,
-   "archive": "L5_wide_date_name.zip",
-   "created": "2026-11-04T14:29Z",
-   "status": "Submitted"
-  },
-  {
-   "id": 1033033,
-   "archive": "L5_wide_date_name.zip",
-   "created": "2026-11-04T14:29Z",
-   "status": "Submitted"
-  },
-  {
-   "id": 1033034,
-   "archive": "L5_wide_date_name.zip",
-   "created": "2026-11-04T14:29Z",
-   "status": "Submitted"
+   "id": 1032931,
+   "archive": "L2_prior_exact_kernel.zip",
+   "created": "2026-11-04T13:46Z",
+   "status": "Running"
   },
   {
    "id": 1034238,
    "archive": "L5_wide_date_name.zip",
    "created": "2026-11-05T01:26Z",
+   "status": "Submitted"
+  },
+  {
+   "id": 1034632,
+   "archive": "L5_wide_date_name.zip",
+   "created": "2026-11-05T06:05Z",
+   "status": "Submitted"
+  },
+  {
+   "id": 1034633,
+   "archive": "L5_wide_date_name.zip",
+   "created": "2026-11-05T06:05Z",
+   "status": "Submitted"
+  },
+  {
+   "id": 1034634,
+   "archive": "L5_wide_date_name.zip",
+   "created": "2026-11-05T06:05Z",
    "status": "Submitted"
   }
  ]

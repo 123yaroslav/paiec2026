@@ -10,7 +10,8 @@ and repeats beta and L5 so that every difference is paired within this file.
 
 usage: python -B scripts/sim_baselines.py --tag recent_conf --min-date 2025-01-01 --seed0 300000
        python -B scripts/sim_baselines.py --tag all_conf --seed0 300000
-Writes data/baselines_<tag>.npz.
+       python -B scripts/sim_baselines.py --tag recent_conf --min-date 2025-01-01 --only beta,L3,L3_own --out baselines_l3
+Writes data/<out>_<tag>.npz (default out: baselines).
 """
 
 
@@ -33,6 +34,7 @@ import sim_official_v2_snapshot as so  # noqa: E402
 KERNEL = [0.03, 3.0]
 WIDE = {"tau_c": 2.5, "tau_d": 1.0}
 L5 = dict(WIDE, item_exact=1.0, item=KERNEL, use_z=True, gamma=0.3, date_prior=True, date_scale=1.0, name_scale=0.8)
+L3 = dict(WIDE, item_exact=1.0, item=KERNEL, use_z=True, gamma=0.3)
 VARIANTS = {
     "beta": {},
     "beta_a0.25": {"beta_a": 0.25},
@@ -42,6 +44,8 @@ VARIANTS = {
     "wide_level_own": dict(WIDE, own=True),
     "L5": dict(L5),
     "L5_own": dict(L5, own=True),
+    "L3": dict(L3),
+    "L3_own": dict(L3, own=True),
 }
 
 
@@ -75,6 +79,8 @@ def main():
     ap.add_argument("--seed0", type=int, default=300000)
     ap.add_argument("--draws", type=int, default=600)
     ap.add_argument("--procs", type=int, default=8)
+    ap.add_argument("--only", default="", help="comma-separated variant names, e.g. beta,L3,L3_own")
+    ap.add_argument("--out", default="baselines", help="output file prefix in data/")
     args = ap.parse_args()
     pairs = pd.read_parquet(ROOT / "colab_jobs/results/exportB/work/results/pairs_z.parquet")
     subjects = pd.read_parquet(ROOT / "data/corpus_full/subjects.parquet",
@@ -85,7 +91,8 @@ def main():
     offset = pd.Series(np.where(dates.notna(), dp["a"] + dp["b"] * yrs.fillna(0), dp["a0"]), index=subjects.subject_key)
     if args.min_date:
         pairs = pairs[pairs.subject_key.isin(set(subjects.subject_key[dates >= pd.Timestamp(args.min_date)]))]
-    state = {"index": so.build_index(pairs), "variants": VARIANTS,
+    variants = {k: v for k, v in VARIANTS.items() if not args.only or k in args.only.split(",")}
+    state = {"index": so.build_index(pairs), "variants": variants,
              "names": dict(zip(subjects.subject_key, subjects.normalized_name.fillna("").str.lower().str.strip())),
              "name_ab": json.loads((ROOT / "colab_jobs/results/name_ability_folds.json").read_text()),
              "date_offset": offset.to_dict(), "date_a0": dp["a0"],
@@ -95,10 +102,10 @@ def main():
     with mp.get_context("fork").Pool(args.procs, initializer=so.init, initargs=(state,)) as pool:
         results = pool.map(run_draw, seeds)
     draw_id = np.concatenate([np.full(len(r["_p"]), k) for k, r in enumerate(results)])
-    rows = {name: np.array([row for r in results for row in r[name]]) for name in VARIANTS}
-    np.savez(HERE / f"data/baselines_{args.tag}.npz", draw_id=draw_id, p=np.array([p for r in results for p in r["_p"]]),
+    rows = {name: np.array([row for r in results for row in r[name]]) for name in variants}
+    np.savez(HERE / f"data/{args.out}_{args.tag}.npz", draw_id=draw_id, p=np.array([p for r in results for p in r["_p"]]),
              seed0=args.seed0, min_date=args.min_date, n_benchmarks=len(state["index"]),
-             variants=json.dumps(VARIANTS), **rows)
+             variants=json.dumps(variants), **rows)
     print("wrote", args.tag, "groups", len(draw_id), flush=True)
 
 

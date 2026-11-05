@@ -225,7 +225,7 @@ if later_beta:
 OUT["TabBetaLaterRow"] = (rf"Beta(2,2), later runs & {len(later_beta)} & "
                           + ", ".join(f"{v:.4f}" for v in later_beta)
                           + (f" & {statistics.fmean(later_beta):.4f} ({statistics.stdev(later_beta) / math.sqrt(len(later_beta)):.4f})"
-                             if len(later_beta) > 1 else " & ") + r" \\") if later_beta else ""
+                             if len(later_beta) > 1 else " & ") + r" & 0.250 \\") if later_beta else ""
 put("OffBetaN", len(beta_runs))
 put("OffBetaMean", statistics.fmean(beta_runs), ".4f")
 put("OffBetaSd", statistics.stdev(beta_runs), ".4f")
@@ -241,26 +241,24 @@ finished_ids = {r["id"] for r in runs}
 waiting = [w for w in unscored["waiting"] if w["id"] not in finished_ids]
 checked = datetime.datetime.strptime(unscored["checked_utc"], "%Y-%m-%dT%H:%MZ")
 OUT["UnscoredAsOf"] = f"{checked.day} {checked:%B} {checked:%H:%M} UTC"
-for archive, name in [("semantic_selected_bundled.zip", "Vtwo"), ("semantic_v3_bundled.zip", "Vthree"),
-                      ("L5_wide_date_name.zip", "Lfive")]:
-    alcs = [r["alc"] for r in sorted(runs, key=lambda r: r["id"]) if r["archive"] == archive]
-    n_wait = sum(1 for w in waiting if w["archive"] == archive)
+# One row per model. L1c and L2c rows pool the CPU and GPU images of the same model.
+TAB_ARCHIVES = [(("semantic_selected_bundled.zip",), "Vtwo"), (("semantic_v3_bundled.zip",), "Vthree"),
+                (("L1c_level_exact_cpu.zip", "L1_level_exact.zip"), "Lonec"),
+                (("L2c_prior_exact_kernel_cpu.zip", "L2_prior_exact_kernel.zip"), "Ltwo"),
+                (("L3_wide_prior.zip",), "Lthree"), (("L4_wide_date.zip",), "Lfour"), (("L5_wide_date_name.zip",), "Lfive")]
+for archives, name in TAB_ARCHIVES:
+    done = [r for r in sorted(runs, key=lambda r: r["id"]) if r["archive"] in archives]
+    alcs = [r["alc"] for r in done]
+    n_wait = sum(1 for w in waiting if w["archive"] in archives and w.get("status") == "Submitted")
     OUT[f"Tab{name}Runs"] = f"{len(alcs)}" + (f" ({n_wait} queued)" if n_wait else "")
     OUT[f"Tab{name}Alc"] = ", ".join(f"{v:.4f}" for v in alcs) if alcs else "none"
     OUT[f"Tab{name}Mean"] = (f"{statistics.fmean(alcs):.4f} ({statistics.stdev(alcs) / math.sqrt(len(alcs)):.4f})"
-                             if len(alcs) > 1 else "")
+                             if len(alcs) > 1 else (f"{alcs[0]:.4f}" if alcs else ""))
+    OUT[f"Tab{name}Bzero"] = f"{statistics.fmean(r['b0'] for r in done):.3f}" if done else ""
     put(f"Off{name}N", len(alcs))
     if alcs:
         put(f"Off{name}Mean", statistics.fmean(alcs), ".4f")
-        put(f"Off{name}BzeroMean", statistics.fmean(r["b0"] for r in runs if r["archive"] == archive), ".4f")
-l5_alcs = [r["alc"] for r in runs if r["archive"] == "L5_wide_date_name.zip"]
-if l5_alcs:
-    OUT["LfiveOfficialSentence"] = (
-        f"Finally, the {len(l5_alcs)} official run{'s' if len(l5_alcs) > 1 else ''} of L5 show that it works on the platform "
-        r"but cannot confirm its simulated gain, which needs about \RunsNeededOurs\ runs per archive.")
-else:
-    OUT["LfiveOfficialSentence"] = (
-        r"Finally, the stalled platform queue left L5 without an official run by \UnscoredAsOf.")
+        put(f"Off{name}BzeroMean", statistics.fmean(r["b0"] for r in done), ".4f")
 put("OffVtwoBzero", by_archive["semantic_selected_bundled.zip"]["b0"], ".4f")
 put("OffVthree", by_archive["semantic_v3_bundled.zip"]["alc"], ".4f")
 put("OffVthreeBzero", by_archive["semantic_v3_bundled.zip"]["b0"], ".4f")
@@ -316,7 +314,9 @@ put("VtwoResponses", m.group(1))
 # Appendix table of every finished formative run.
 DESC = {"adaptive_baseline.zip": r"Beta(2,2) baseline", "hierarchical_prior.zip": r"V1 hierarchical prior",
         "semantic_selected_bundled.zip": "V2", "semantic_v3_bundled.zip": "V3",
-        "semantic_v3_uncertainty_band015.zip": r"V3 with uncertainty band", "L5_wide_date_name.zip": "L5"}
+        "semantic_v3_uncertainty_band015.zip": r"V3 with uncertainty band", "L5_wide_date_name.zip": "L5",
+        "L1_level_exact.zip": "L1c, GPU image", "L1c_level_exact_cpu.zip": "L1c", "L2_prior_exact_kernel.zip": "L2c, GPU image",
+        "L3_wide_prior.zip": "L3, final", "L4_wide_date.zip": "L4"}
 rows_tex = []
 for r in sorted(runs, key=lambda r: r["id"]):
     rows_tex.append(f"{r['id']} & {DESC.get(r['archive'], r['archive'])} & {r['groups']} & {r['benchmarks']} & "
@@ -401,12 +401,16 @@ for tag, res in LADDER.items():
             put(f"Lad{t}{L}{N}", res[f"{n}_{lab}"], "+.4f")
             put(f"Lad{t}{L}{N}Se", res[f"{n}_{lab}_se"], ".4f")
         put(f"Lad{t}{L}LfiveRel", 100 * res[f"L5_{lab}"] / res[f"beta_{lab}"], "+.1f")
+        put(f"Lad{t}{L}LthreeRel", 100 * res[f"L3_{lab}"] / res[f"beta_{lab}"], "+.1f")
 
 # Paired comparisons between candidates on the same draws.
 for tag, a, b, name in (("recent_conf", "L5", "L6", "PairRFLfiveLsix"), ("all_conf", "L5", "L6", "PairAFLfiveLsix"),
                         ("recent_conf", "L5", "L5_no_text", "PairRFText"), ("all_conf", "L5", "L5_no_text", "PairAFText"),
                         ("recent_conf", "L5", "L3", "PairRFDateName"), ("all_conf", "L5", "L3", "PairAFDateName"),
-                        ("all_conf", "L5", "L2c", "PairAFLfiveLtwoc"), ("recent_conf", "L5", "L2c", "PairRFLfiveLtwoc")):
+                        ("all_conf", "L5", "L2c", "PairAFLfiveLtwoc"), ("recent_conf", "L5", "L2c", "PairRFLfiveLtwoc"),
+                        ("recent_conf", "L3", "wide_kernel", "PairRFTextThree"), ("all_conf", "L3", "L2c", "PairAFLthreeLtwoc"),
+                        ("recent_conf", "L3", "L2c", "PairRFLthreeLtwoc"), ("recent_conf", "L3", "L6", "PairRFLthreeLsix"),
+                        ("all_conf", "L3", "L6", "PairAFLthreeLsix")):
     z = np.load(HERE / f"data/ladder_{tag}.npz")
     W6 = np.array([0.1, 0.2, 0.2, 0.2, 0.2, 0.1])
     bins = np.minimum((np.abs(z["p"] - 0.5) / 0.1).astype(int), 4)
@@ -442,6 +446,7 @@ put("EncDraws", len(draw_s))
 put("GridDraws", rep_["grid_tuning_draws"]["value"])
 lad_rc = LADDER["recent_conf"]
 put("LadRCOLfiveSeRel", 100 * lad_rc["L5_own_se"] / lad_rc["beta_own"], ".2f")
+put("LadRCOLthreeSeRel", 100 * lad_rc["L3_own_se"] / lad_rc["beta_own"], ".2f")
 
 # Official Beta per budget, mean of the three runs (for the calibration figure).
 official_beta_pb, later_beta_pb = [], []
@@ -476,6 +481,8 @@ for name, N in (("v2", "Two"), ("v3", "Three")):
         put(f"Rep{N}{L_}Run", r_[f"{lab}_run"], ".4f")
         put(f"Rep{N}{L_}Lfive", r_[f"{lab}_L5"], ".4f")
         put(f"Rep{N}{L_}Beta", r_[f"{lab}_beta"], ".4f")
+        put(f"Rep{N}{L_}DiffThree", r_[f"{lab}_L3_minus_run"], "+.4f")
+        put(f"Rep{N}{L_}DiffThreeSe", r_[f"{lab}_L3_minus_run_se"], ".4f")
         put(f"Rep{N}{L_}Diff", r_[f"{lab}_L5_minus_run"], "+.4f")
         put(f"Rep{N}{L_}DiffSe", r_[f"{lab}_L5_minus_run_se"], ".4f")
         put(f"Rep{N}{L_}VsBeta", r_[f"{lab}_run_minus_beta"], "+.4f")
@@ -485,7 +492,7 @@ put("RepCheckGroups", ex["replay"]["L5_check"]["groups"])
 put("RepCheckDiff", ex["replay"]["L5_check"]["mean_abs_diff"], ".4f")
 put("RepCheckRuntime", ex["replay"]["L5_check"]["runtime_mean"], ".4f")
 put("RepCheckSim", ex["replay"]["L5_check"]["sim_mean"], ".4f")
-put("ArchiveFinalMB", (ROOT / "dist/v5/L5_wide_date_name.zip").stat().st_size / 1e6, ".1f")
+put("ArchiveFinalMB", (ROOT / "dist/v5/L3_wide_prior.zip").stat().st_size / 1e6, ".1f")
 put("OffBetaPbOne", official_beta_pb.mean(0)[1], ".4f")
 put("OffBetaPbLast", official_beta_pb.mean(0)[-1], ".4f")
 
@@ -501,17 +508,22 @@ for tag, t in (("recent_conf", "RC"), ("all_conf", "AC")):
     bins = np.minimum((np.abs(zb["p"] - 0.5) / 0.1).astype(int), 4)
     ts = np.bincount(bins, minlength=5) / len(bins)
     alc = {n: zb[n] @ W6 for n in json.loads(str(zb["variants"]))}
-    alc.update({n: zl[n] @ W6 for n in ("L2c", "L6", "wide_level", "wide_exact")})
+    alc.update({n: zl[n] @ W6 for n in ("L2c", "L6", "wide_level", "wide_exact", "L3")})
+    z3 = np.load(HERE / f"data/baselines_l3_{tag}.npz")
+    if not (np.allclose(z3["beta"], zl["beta"]) and np.allclose(z3["L3"], zl["L3"])):
+        raise SystemExit(f"L3 ablation draws differ from the ladder draws ({tag})")
+    alc["L3_own"] = z3["L3_own"] @ W6
     for lab, L in (("un", "U"), ("own", "O")):
         w = np.ones(len(bins)) if lab == "un" else OWN_SHARE[bins] / ts[bins]
         w = w / w.mean()
         for n, N in (("beta_a0.25", "Bqtr"), ("beta_a0.5", "Bhalf"), ("beta_a2", "Btwo"),
-                     ("wide_level_own", "Wown"), ("L5_own", "Lfiveown")):
+                     ("wide_level_own", "Wown"), ("L5_own", "Lfiveown"), ("L3_own", "Lthreeown")):
             m, se = ratio_se(w, alc[n] - alc["beta"], zb["draw_id"])
             put(f"Lad{t}{L}{N}", m, "+.4f")
             put(f"Lad{t}{L}{N}Se", se, ".4f")
         for a, b, N in (("L5", "L5_own", "Share"), ("wide_level", "wide_level_own", "LevelShare"),
-                        ("L5", "beta_a0.5", "Bhalf"), ("wide_exact", "wide_level", "ExactStep")):
+                        ("L5", "beta_a0.5", "Bhalf"), ("wide_exact", "wide_level", "ExactStep"),
+                        ("L3", "L3_own", "ShareThree"), ("L3", "beta_a0.5", "BhalfThree"), ("L3_own", "beta", "OwnThree")):
             m, se = ratio_se(w, alc[a] - alc[b], zb["draw_id"])
             put(f"Pair{t}{N}{L}", m, "+.4f")
             put(f"Pair{t}{N}{L}Se", se, ".4f")
@@ -525,14 +537,16 @@ for tag, t in (("recent_conf", "RC"), ("all_conf", "AC")):
         sh = np.array(tps[key]["bin_share"])
         w = sh[bins] / ts[bins]
         w = w / w.mean()
-        for a_, b_, N in (("L5", "beta", "LfiveBeta"), ("L5", "L2c", "LfiveLtwoc"), ("L5", "beta_a2", "LfiveBtwo")):
+        for a_, b_, N in (("L5", "beta", "LfiveBeta"), ("L5", "L2c", "LfiveLtwoc"), ("L5", "beta_a2", "LfiveBtwo"),
+                          ("L3", "beta", "LthreeBeta"), ("L3", "L2c", "LthreeLtwoc"), ("L3", "beta_a2", "LthreeBtwo")):
             m, se = ratio_se(w, alc[a_] - alc[b_], zb["draw_id"])
             put(f"Sh{K}{t}{N}", m, "+.4f")
             put(f"Sh{K}{t}{N}Se", se, ".4f")
             put(f"Sh{K}{t}{N}Abs", abs(m), ".4f")
         put(f"Sh{K}{t}SimBtwo", float((w * alc["beta_a2"]).sum() / w.sum()), ".4f")
     # Sampling error of the 26-group share estimate: resample the group evaluations' bins.
-    for a, b, N in (("L5", "beta", "LfiveBeta"), ("L5", "L2c", "LfiveLtwoc"), ("L5", "L6", "LfiveLsix")):
+    for a, b, N in (("L5", "beta", "LfiveBeta"), ("L5", "L2c", "LfiveLtwoc"), ("L5", "L6", "LfiveLsix"),
+                    ("L3", "beta", "LthreeBeta"), ("L3", "L2c", "LthreeLtwoc")):
         d = alc[a] - alc[b]
         per_bin = np.array([d[bins == k].mean() for k in range(5)])
         est = BOOT @ per_bin
@@ -543,6 +557,62 @@ for tag, t in (("recent_conf", "RC"), ("all_conf", "AC")):
         put(f"Bin{t}{N}Zero", per_bin[0], "+.4f")
         put(f"Bin{t}{N}Four", per_bin[4], "+.4f")
 put("BootReps", "20,000")
+
+# Side of 0.5 from the official budget-0 scores of archives that shift predictions (scripts/side_of_half.py).
+side = json.loads((HERE / "data/side_of_half.json").read_text())
+for key, N in (("Beta22", "Beta"), ("L1c", "Lonec"), ("L2", "Ltwo"), ("L3", "Lthree"), ("L4", "Lfour"), ("L5", "Lfive"),
+               ("V2", "Vtwo"), ("V3", "Vthree")):
+    v = side["official_b0"][key]
+    put(f"SideBzero{N}", v["b0"], ".4f")
+    put(f"SideBzero{N}Se", v["se"], ".4f")
+    put(f"SideBzero{N}Runs", len(v["runs"]))
+    put(f"SideBzero{N}Groups", v["group_evaluations"])
+for m, N in (("L4", "Lfour"), ("L5", "Lfive")):
+    g = side["gaps"][m]
+    put(f"SideGap{N}", g["official"], ".3f")
+    put(f"SideGap{N}Se", g["official_se"], ".3f")
+    put(f"SideGap{N}SimMax", g["sim_max"], ".3f")
+    put(f"SideGap{N}SimTrain", g["sim_at_train_side"], "+.3f")
+    put(f"SideGap{N}AlcAbs", 0.1 * g["official"], ".4f")
+sm = side["summary"]
+put("SidePiLow", sm["pi_lower95_L4"], ".2f")
+put("SidePiLowPct", 100 * sm["pi_lower95_L4"], ".0f")
+shifted = [r["b0"] for m in ("L4", "L5") for r in side["official_b0"][m]["runs"]]
+top3 = max(r["b0"] for r in side["official_b0"]["L3"]["runs"])
+above = sum(b > top3 for b in shifted)
+OUT["SideRunsAbove"] = ("every run of L4 and L5 lies above every run of L3" if above == len(shifted)
+                        else f"{above} of {len(shifted)} runs of L4 and L5 lie above every run of L3")
+put("SideBreakeven", sm["breakeven_pi"], ".2f")
+put("SideTrainShare", side["simulated"]["recent"]["train_share_below"], ".2f")
+put("SideFiveThreeTrain", sm["L5_minus_L3_at_train_side"][0], "+.4f")
+put("SideFiveThreeLow", sm["L5_minus_L3_at_pi_lower95"][0], "+.4f")
+put("SideFiveThreeOne", sm["L5_minus_L3_at_pi_one"][0], "+.4f")
+put("SideFiveThreeSe", max(sm["L5_minus_L3_at_pi_one"][1], sm["L5_minus_L3_at_pi_lower95"][1]), ".4f")
+put("SideThreeLo", sm["L3_vs_beta_range"][0], "+.4f")
+put("SideThreeHi", sm["L3_vs_beta_range"][1], "+.4f")
+put("SideFiveLo", sm["L5_vs_beta_range"][0], "+.4f")
+put("SideFiveHi", sm["L5_vs_beta_range"][1], "+.4f")
+put("SideThreeRelHighLo", -sm["L3_rel_high_pi_range"][1], ".1f")
+put("SideThreeRelHighHi", -sm["L3_rel_high_pi_range"][0], ".1f")
+put("SidePiFromLthree", sm["pi_from_L3"], ".2f")
+put("SidePiFromLfour", sm["pi_from_L4"], ".2f")
+put("SidePiFromLfive", sm["pi_from_L5"], ".2f")
+put("SidePiFromLfourLow", sm["pi_from_L4_lower95"], ".2f")
+put("SidePiLowTwo", sm["pi_lower95_L4_two_sided"], ".2f")
+put("SideLthreeSimAtLow", sm["L3_b0_sim_at_pi_lower95"], ".4f")
+put("SideLsixCross", sm["L6_crosses_beta"], ".2f")
+put("SideShareThreeLow", -sm["L3_share_loss_at_pi_lower95"], ".4f")
+put("SideThreeAtLow", -sm["L3_vs_beta_at_pi_lower95"], ".4f")
+put("SidePlotSe", math.ceil(sm["plotted_se_max"] * 1e4) / 1e4, ".4f")
+put("SideTrainAbovePct", 100 * (1 - side["simulated"]["recent"]["train_share_below"]), ".0f")
+WORDS = {1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six", 7: "seven", 8: "eight", 9: "nine"}
+nr = [len(side["official_b0"][m]["runs"]) for m in ("L3", "L4", "L5")]
+OUT["SideRunsPhrase"] = (f"{WORDS.get(nr[0], nr[0])} runs each of L3, L4 and L5" if len(set(nr)) == 1
+                         else f"{nr[0]}, {nr[1]} and {nr[2]} runs of L3, L4 and L5")
+put("SideKernelLo", sm["wide_kernel_minus_L3_range"][0], "+.4f")
+put("SideKernelHi", sm["wide_kernel_minus_L3_range"][1], "+.4f")
+put("SideAllLo", sm["all_L5_minus_L3_range"][0], "+.4f")
+put("SideAllHi", sm["all_L5_minus_L3_range"][1], "+.4f")
 
 lines =["% Generated by scripts/make_numbers.py. Do not edit by hand."]
 lines += [f"\\newcommand{{\\{k}}}{{{v}}}" for k, v in OUT.items()]

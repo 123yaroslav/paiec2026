@@ -85,9 +85,10 @@ for name in ("v2", "v3"):
     m = dump.merge(rep, on=["seed", "group"])
     out = {"draws": int(m.seed.nunique()), "groups": int(len(m))}
     for label, df in (("testw", m), ("unweighted", m.assign(w=1.0))):
-        for col in ("run", "L5", "beta"):
+        for col in ("run", "L5", "L3", "beta"):
             out[f"{label}_{col}"] = ratio_se(df, col)[0]
         out[f"{label}_L5_minus_run"], out[f"{label}_L5_minus_run_se"] = ratio_se(df.assign(dd=df.L5 - df.run), "dd")
+        out[f"{label}_L3_minus_run"], out[f"{label}_L3_minus_run_se"] = ratio_se(df.assign(dd=df.L3 - df.run), "dd")
         out[f"{label}_run_minus_beta"], out[f"{label}_run_minus_beta_se"] = ratio_se(df.assign(dd=df.run - df.beta), "dd")
     OUT["replay"][name] = out
 chk = pd.read_parquet(R / "replay_L5_check.parquet")[["seed", "group", "alc"]].merge(dump, on=["seed", "group"])

@@ -94,20 +94,29 @@ ax1.set_ylabel("Brier score of Beta baseline")
 ax1.set_title("(a) Calibrating the simulator")
 ax1.set_ylim(0.12, 0.26)
 
-COL2 = {"L1c": "#0072B2", "L3": "#E69F00", "L4": "#009E73", "L5": "#D55E00"}
-LAB2 = {"L1c": "L1c (narrow, same item)", "L3": "L3 (wide, + kernel, E5)", "L4": "L4 (+ date)", "L5": "L5 (+ name), final"}
-res = lad["recent_conf"]
-for k, n in enumerate(("L1c", "L3", "L4", "L5")):
-    mu = np.array([m for m, s in res[f"{n}_pbdiff_own"]])
-    se = np.array([s for m, s in res[f"{n}_pbdiff_own"]])
-    ax2.errorbar(x + (k - 1.5) * 0.07, mu, yerr=1.96 * se, color=COL2[n], marker="o", ms=2.5, lw=1.1,
-                 capsize=1.5, label=LAB2[n])
-ax2.axhline(0, color="#000000", lw=0.8)
-ax2.set_xticks(x, labels)
-ax2.set_xlabel("labels revealed per group")
-ax2.set_ylabel("Brier minus Beta(1,1)")
+# (b) Simulated ALC against the share of test groups below 0.5 (scripts/side_of_half.py).
+side = json.loads((HERE / "data/side_of_half.json").read_text())
+rec = side["simulated"]["recent"]
+pis = np.array(rec["pi"][1:], dtype=float)
+COL2 = {"L2c": "#0072B2", "L3": "#000000", "L4": "#009E73", "L5": "#D55E00", "L6": "#CC79A7"}
+LAB2 = {"L2c": "L2c (narrow)", "L3": "L3 (wide), final", "L4": "L4 (+ date)", "L5": "L5 (+ name)", "L6": "L6 (tuned)"}
+lo = side["summary"]["pi_lower95_L4"]
+ax2.axvspan(lo, 1.0, color="#DDDDDD", lw=0)
+ax2.axvline(rec["train_share_below"], color="#777777", lw=0.8, ls=":")
+for n in ("L2c", "L6", "L5", "L4", "L3"):
+    y = np.array([m for m, s_ in rec["alc_vs_beta"][n][1:]])
+    ax2.plot(pis, y, color=COL2[n], lw=1.6 if n == "L3" else 1.1, label=LAB2[n])
+ax2.axhline(0, color="#000000", lw=0.6)
+ax2.text(lo + 0.01, 0.0025, "official\nbudget-0\nscores", fontsize=6, va="top", ha="left")
+ax2.text(rec["train_share_below"] + 0.02, -0.0122, "training data", fontsize=6, va="bottom", ha="left")
+ax2.set_xlim(0, 1)
+ax2.set_ylim(-0.0125, 0.0055)
+ax2.set_xlabel("share of test groups below 0.5")
+ax2.set_ylabel("ALC minus Beta(1,1)")
 ax2.set_title("(b) Test weights, recent subjects")
-ax2.legend(loc="upper center", ncol=2, fontsize=6.0, handlelength=1.2, borderaxespad=0.1, labelspacing=0.25, columnspacing=0.8)
-ax2.set_ylim(-0.0165, 0.0085)
+handles, labels_ = ax2.get_legend_handles_labels()
+order = [labels_.index(LAB2[n]) for n in ("L3", "L4", "L5", "L6", "L2c")]
+ax2.legend([handles[i] for i in order], [labels_[i] for i in order], loc="upper left", ncol=2, fontsize=5.8,
+           handlelength=1.2, borderaxespad=0.2, labelspacing=0.2, columnspacing=0.8)
 fig.savefig(HERE / "fig_testpool.pdf")
 print("wrote fig_testpool.pdf")

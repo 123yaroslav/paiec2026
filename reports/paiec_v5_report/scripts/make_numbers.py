@@ -7,6 +7,7 @@ usage: python -B scripts/make_numbers.py
 
 import os as _os
 PAIEC_ROOT = _os.environ.get("PAIEC_ROOT", _os.path.abspath(_os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "..", "..", "..")))
+import datetime
 import glob
 import json
 import math
@@ -209,8 +210,33 @@ put("OffBetaSd", statistics.stdev(beta_runs), ".4f")
 put("OffBetaSe", statistics.stdev(beta_runs) / math.sqrt(len(beta_runs)), ".4f")
 put("OffBetaRuns", ", ".join(f"{v:.4f}" for v in beta_runs))
 put("OffBetaRange", max(beta_runs) - min(beta_runs), ".4f")
-by_archive = {r["archive"]: r for r in runs}
+by_archive = {r["archive"]: r for r in sorted(runs, key=lambda r: -r["id"])}  # earliest run per archive
 put("OffVtwo", by_archive["semantic_selected_bundled.zip"]["alc"], ".4f")
+
+# Table rows for V2 and L5: finished runs from feedback files, waiting runs from the queue snapshot.
+unscored = json.loads((HERE / "data/unscored_runs.json").read_text())
+finished_ids = {r["id"] for r in runs}
+waiting = [w for w in unscored["waiting"] if w["id"] not in finished_ids]
+checked = datetime.datetime.strptime(unscored["checked_utc"], "%Y-%m-%dT%H:%MZ")
+OUT["UnscoredAsOf"] = f"{checked.day} {checked:%B} {checked:%H:%M} UTC"
+for archive, name in [("semantic_selected_bundled.zip", "Vtwo"), ("L5_wide_date_name.zip", "Lfive")]:
+    alcs = [r["alc"] for r in sorted(runs, key=lambda r: r["id"]) if r["archive"] == archive]
+    n_wait = sum(1 for w in waiting if w["archive"] == archive)
+    OUT[f"Tab{name}Runs"] = f"{len(alcs)}" + (f" ({n_wait} not started)" if n_wait else "")
+    OUT[f"Tab{name}Alc"] = ", ".join(f"{v:.4f}" for v in alcs) if alcs else "none"
+    OUT[f"Tab{name}Mean"] = (f"{statistics.fmean(alcs):.4f} ({statistics.stdev(alcs) / math.sqrt(len(alcs)):.4f})"
+                             if len(alcs) > 1 else "")
+    put(f"Off{name}N", len(alcs))
+l5_alcs = [r["alc"] for r in runs if r["archive"] == "L5_wide_date_name.zip"]
+if l5_alcs:
+    OUT["LfiveOfficialSentence"] = (
+        f"Finally, L5 has only {len(l5_alcs)} official run{'s' if len(l5_alcs) > 1 else ''}, "
+        r"far fewer than the \RunsNeededOurs\ needed to resolve the simulated gain, "
+        "so the official results check that L5 runs but do not confirm the simulated ranking.")
+else:
+    OUT["LfiveOfficialSentence"] = (
+        r"Finally, no official run of L5 had started by \UnscoredAsOf\ because the platform queue stalled, "
+        "so no official result supports the simulated ranking.")
 put("OffVtwoBzero", by_archive["semantic_selected_bundled.zip"]["b0"], ".4f")
 put("OffVthree", by_archive["semantic_v3_bundled.zip"]["alc"], ".4f")
 put("OffVthreeBzero", by_archive["semantic_v3_bundled.zip"]["b0"], ".4f")
@@ -260,7 +286,7 @@ put("VtwoResponses", m.group(1))
 # Appendix table of every finished formative run.
 DESC = {"adaptive_baseline.zip": r"Beta(2,2) baseline", "hierarchical_prior.zip": r"V1 hierarchical prior",
         "semantic_selected_bundled.zip": "V2", "semantic_v3_bundled.zip": "V3",
-        "semantic_v3_uncertainty_band015.zip": r"V3 with uncertainty band"}
+        "semantic_v3_uncertainty_band015.zip": r"V3 with uncertainty band", "L5_wide_date_name.zip": "L5"}
 rows_tex = []
 for r in sorted(runs, key=lambda r: r["id"]):
     rows_tex.append(f"{r['id']} & {DESC.get(r['archive'], r['archive'])} & {r['groups']} & {r['benchmarks']} & "

@@ -30,7 +30,7 @@ First, a prior learned from task and system text with a frozen multilingual enco
 Second, sharing labels across systems on the same benchmark and across identical or similar items lowers ALC by \ConfFullRelAbs\% in a simulator of the official draws.
 Third, the official practice-phase (formative) test pool is more extreme than the training data. The feedback of a constant-prediction baseline reveals each group's distance from 50\% accuracy, and reweighting simulated groups to match it moves the simulated baseline score from \LadACUBeta\ to \LadACOBeta, against \OffBetaMean\ on the platform.
 Under this calibration a wider prior and priors from release date and model name help, and our final model lowers ALC by \LadRCOLfiveRelAbs\% (standard error \LadRCOLfiveSeRel\%) on fresh simulated draws of recent systems.
-A Beta prior tuned to this pool recovers less than a tenth of that gain, and without label sharing across systems the final model loses \PairRCShareOAbs\ of its \LadRCOLfiveAbs.
+A Beta prior tuned to this pool recovers less than a tenth of that gain, and without label sharing across systems the final model loses \PairRCShareOAbs\ of its \LadRCOLfiveAbs\ ALC gain.
 Fourth, three official runs of one baseline spread by \OffBetaRange\ and the leaderboard keeps each team's best run, so we compare submissions by repeated runs.
 \end{abstract}
 
@@ -342,7 +342,7 @@ Our repeated runs stalled in the platform queue on 4 November (Table~\ref{tab:fo
 
 \begin{table}[t]
 \centering
-\caption{\textbf{Formative scores so far are single draws or small samples.} Official Brier ALC per run, lower is better. Each run is scored on its own random draw of 8 or 9 groups.}
+\caption{\textbf{Formative scores so far are single draws or small samples.} Official Brier ALC per run, lower is better. Each run is scored on its own random draw of 8 or 9 groups. Runs marked not started were still waiting in the platform queue on \UnscoredAsOf.}
 \label{tab:formative}
 \small
 \begin{tabular}{lcll}
@@ -350,9 +350,9 @@ Our repeated runs stalled in the platform queue on 4 November (Table~\ref{tab:fo
 Archive & Runs & ALC per run & Mean (s.e.) \\
 \midrule
 \BB, Beta(2,2) & \OffBetaN & \OffBetaRuns & \OffBetaMean\ (\OffBetaSe) \\
-V2 & 1 + 2 queued & \OffVtwo, \TODO{} & \TODO{} \\
+V2 & \TabVtwoRuns & \TabVtwoAlc & \TabVtwoMean \\
 V3 & 1 & \OffVthree & \\
-L5, final & 3 queued & \TODO{} & \TODO{} \\
+L5, final & \TabLfiveRuns & \TabLfiveAlc & \TabLfiveMean \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -384,7 +384,7 @@ The date prior's two coefficients were fitted on all training benchmarks, includ
 The same-item shift relies on assumption A2. If subjects on one benchmark do not share items, the true gain is smaller by up to the same-item step, \PairRCExactStepOAbs\ under test weights on recent subjects.
 Confirmation draws correct for tuning but not for design choices made before them, such as the simulator itself.
 Smaller mismatches between training and runtime and the omitted benchmarks are listed in Appendix~\ref{app:repro}.
-Finally, the official runs of L5 are pending, so no official result in this draft supports the simulated ranking.
+\LfiveOfficialSentence
 
 \section{Conclusion}
 \label{sec:conclusion}
@@ -474,10 +474,11 @@ Our L5 archive has SHA-256
 \begin{center}\texttt{2d8b7034279191413724be277a60fd9ec057b4bf697d42b873790f839cb83760}.\end{center}
  The script \texttt{build\_zip.py} takes the five E5 files from the V3 archive or, if it is absent, from the hub at the pinned revision, and checks their SHA-256. A rebuild gives identical file contents.
 
-\paragraph{5. Formative runs and this report.} The first two commands resubmit an uploaded archive and collect its scores. The others rebuild the numbers, the figures and this PDF.
+\paragraph{5. Formative runs and this report.} The first three commands resubmit an uploaded archive, collect the scores of finished runs and record the runs still waiting in the queue. The others rebuild the numbers, the figures and this PDF.
 \begin{lstlisting}
 python scripts/resubmit.py L5_wide_date_name.zip 3 --label L5
 python scripts/track.py
+python scripts/queue_snapshot.py
 cd reports/paiec_v5_report && python -B scripts/make_numbers.py && python -B scripts/make_figures.py
 pdflatex main.tex && pdflatex main.tex
 \end{lstlisting}

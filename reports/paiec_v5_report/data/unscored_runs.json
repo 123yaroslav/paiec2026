@@ -1,0 +1,41 @@
+{
+ "checked_utc": "2026-11-05T03:04Z",
+ "waiting": [
+  {
+   "id": 1032873,
+   "archive": "semantic_selected_bundled.zip",
+   "created": "2026-11-04T13:26Z",
+   "status": "Submitted"
+  },
+  {
+   "id": 1032874,
+   "archive": "semantic_selected_bundled.zip",
+   "created": "2026-11-04T13:26Z",
+   "status": "Submitted"
+  },
+  {
+   "id": 1033031,
+   "archive": "L5_wide_date_name.zip",
+   "created": "2026-11-04T14:29Z",
+   "status": "Submitted"
+  },
+  {
+   "id": 1033033,
+   "archive": "L5_wide_date_name.zip",
+   "created": "2026-11-04T14:29Z",
+   "status": "Submitted"
+  },
+  {
+   "id": 1033034,
+   "archive": "L5_wide_date_name.zip",
+   "created": "2026-11-04T14:29Z",
+   "status": "Submitted"
+  },
+  {
+   "id": 1034238,
+   "archive": "L5_wide_date_name.zip",
+   "created": "2026-11-05T01:26Z",
+   "status": "Submitted"
+  }
+ ]
+}

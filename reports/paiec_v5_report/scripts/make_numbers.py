@@ -163,7 +163,7 @@ put("ConfSeven", int(sizes.get(7, 0)))
 
 # ------------------------------------------------------------ official formative runs
 archive_of = {}
-for p in glob.glob(str(ROOT / "private/submissions/*.json")):
+for p in glob.glob(str(ROOT / "private/submissions/*.json")) + glob.glob(str(ROOT / "private/submissions/*/*.json")):
     if Path(p).name.startswith("._") or Path(p).name == "track_state.json":
         continue
     d = json.loads(Path(p).read_text())
@@ -203,7 +203,27 @@ put("OffTablesEight", sum(1 for r in runs if r["groups"] == 8))
 put("OffGroupEvals", sum(r["groups"] for r in runs))
 put("OffDistinctGroups", len(all_groups))
 put("OffDistinctBench", len(all_bench))
-beta_runs = [r["alc"] for r in runs if r["archive"] == "adaptive_baseline.zip"]
+# The test weights and every calibration number use the three Beta runs that existed when the
+# model was chosen. Later Beta runs are reported separately in Table 4 as an outside check.
+CALIB_BETA_IDS = {1003760, 1032881, 1032882}
+for sid, name in list(archive_of.items()):
+    if name in ("beta_probe_20261105.zip", "beta_conc1_probe.zip"):  # baseline files re-uploaded as queue probes
+        archive_of[sid] = "adaptive_baseline.zip"
+for r in runs:
+    r["archive"] = archive_of.get(r["id"], r["archive"])
+assert {r["id"] for r in runs if r["archive"] == "adaptive_baseline.zip"} >= CALIB_BETA_IDS
+beta_runs = [r["alc"] for r in runs if r["id"] in CALIB_BETA_IDS]
+later_beta = [r["alc"] for r in sorted(runs, key=lambda r: r["id"])
+              if r["archive"] == "adaptive_baseline.zip" and r["id"] not in CALIB_BETA_IDS]
+put("OffBetaLaterN", len(later_beta))
+put("OffBetaAllSd", statistics.stdev(beta_runs + later_beta), ".4f")
+put("OffBetaLaterRuns", ", ".join(f"{v:.4f}" for v in later_beta))
+if later_beta:
+    put("OffBetaLaterMean", statistics.fmean(later_beta), ".4f")
+OUT["TabBetaLaterRow"] = (rf"Beta(2,2), runs after model selection & {len(later_beta)} & "
+                          + ", ".join(f"{v:.4f}" for v in later_beta)
+                          + (f" & {statistics.fmean(later_beta):.4f} ({statistics.stdev(later_beta) / math.sqrt(len(later_beta)):.4f})"
+                             if len(later_beta) > 1 else " & ") + r" \\") if later_beta else ""
 put("OffBetaN", len(beta_runs))
 put("OffBetaMean", statistics.fmean(beta_runs), ".4f")
 put("OffBetaSd", statistics.stdev(beta_runs), ".4f")
@@ -230,16 +250,15 @@ for archive, name in [("semantic_selected_bundled.zip", "Vtwo"), ("L5_wide_date_
 l5_alcs = [r["alc"] for r in runs if r["archive"] == "L5_wide_date_name.zip"]
 if l5_alcs:
     OUT["LfiveOfficialSentence"] = (
-        f"Finally, L5 has only {len(l5_alcs)} official run{'s' if len(l5_alcs) > 1 else ''}, "
-        r"far fewer than the \RunsNeededOurs\ needed to resolve the simulated gain, "
-        "so the official results check that L5 runs but do not confirm the simulated ranking.")
+        f"Finally, the {len(l5_alcs)} official run{'s' if len(l5_alcs) > 1 else ''} of L5 show that it works on the platform "
+        r"but cannot confirm its simulated gain, which needs about \RunsNeededOurs\ runs per archive.")
 else:
     OUT["LfiveOfficialSentence"] = (
         r"Finally, the stalled platform queue left L5 without an official run by \UnscoredAsOf.")
 put("OffVtwoBzero", by_archive["semantic_selected_bundled.zip"]["b0"], ".4f")
 put("OffVthree", by_archive["semantic_v3_bundled.zip"]["alc"], ".4f")
 put("OffVthreeBzero", by_archive["semantic_v3_bundled.zip"]["b0"], ".4f")
-blast = [r["b31"] for r in runs if r["archive"] == "adaptive_baseline.zip"]
+blast = [r["b31"] for r in runs if r["id"] in CALIB_BETA_IDS]
 put("OffBetaBlastMin", min(blast), ".3f")
 put("OffBetaBlastMax", max(blast), ".3f")
 (HERE / "data/official_runs.json").write_text(json.dumps(runs, indent=1) + "\n")
@@ -247,9 +266,15 @@ put("OffBetaBlastMax", max(blast), ".3f")
 # Power for an unpaired comparison of run means, two-sided 5% test, 80% power.
 z = norm.ppf(0.975) + norm.ppf(0.8)
 delta = abs(cv_["full"]["diff_vs_beta11"])
-for sd, name in [(0.016, "Low"), (0.024, "High"), (statistics.stdev(beta_runs), "Ours")]:
+all_beta = beta_runs + later_beta  # every run of the Beta archive, for run-to-run spread
+for sd, name in [(0.016, "Low"), (0.024, "High"), (statistics.stdev(all_beta), "Ours")]:
     put(f"RunsNeeded{name}", math.ceil(2 * z * z * sd * sd / (delta * delta)))
-put("SpreadRatio", (max(beta_runs) - min(beta_runs)) / delta, ".0f")
+put("SpreadRatio", (max(all_beta) - min(all_beta)) / delta, ".0f")
+put("OffBetaAllN", len(all_beta))
+put("OffBetaAllRuns", ", ".join(f"{v:.4f}" for v in all_beta))
+put("OffBetaAllMean", statistics.fmean(all_beta), ".4f")
+put("OffBetaAllSe", statistics.stdev(all_beta) / math.sqrt(len(all_beta)), ".4f")
+put("OffBetaAllRange", max(all_beta) - min(all_beta), ".4f")
 put("RunsNeededPaired", math.ceil(z * z * pair_sd * pair_sd / (delta * delta)))
 # Expected best of 20 runs below the mean, Blom approximation.
 put("BestOfTwentyShift", -norm.ppf((1 - 0.375) / (20 + 0.25)) * 0.016, ".3f")
@@ -316,6 +341,10 @@ put("RecentAbove", 100 * tps["train"]["recent_2025_07"]["share_above_half"], ".0
 put("RecentGroups", tps["train"]["recent_2025_07"]["groups"])
 put("RecentBench", tps["train"]["recent_2025_07"]["benchmarks"])
 put("TpShareOwn", ", ".join(f"{x:.3f}" for x in OWN_SHARE))
+put("TpLaterGroups", tps["test_pool_later"]["group_evaluations"])
+put("TpLaterShare", ", ".join(f"{x:.3f}" for x in tps["test_pool_later"]["bin_share"]))
+put("TpLaterPq", tps["test_pool_later"]["mean_pq"], ".3f")
+put("TpPooledGroups", tps["test_pool_pooled"]["group_evaluations"])
 put("TpShareSim", ", ".join(f"{x:.3f}" for x in SIM_SHARE))
 put("TpFarShare", 100 * OWN_SHARE[3:].sum(), ".0f")
 put("TpExtremeN", int(round(OWN_SHARE[4] * tps["test_pool"]["group_evaluations"])))
@@ -409,17 +438,18 @@ lad_rc = LADDER["recent_conf"]
 put("LadRCOLfiveSeRel", 100 * lad_rc["L5_own_se"] / lad_rc["beta_own"], ".2f")
 
 # Official Beta per budget, mean of the three runs (for the calibration figure).
-official_beta_pb = []
+official_beta_pb, later_beta_pb = [], []
 for p_ in sorted(glob.glob(str(ROOT / "private/feedback/*_scoring_stdout.txt"))):
     sid = int(Path(p_).name.split("_")[0])
     if archive_of.get(sid) != "adaptive_baseline.zip":
         continue
     parts = re.split(r"Label budget:\s*(\d+)", Path(p_).read_text())
     row = r"(subject_\d+)\s+(benchmark_\d+)\s+(\d+)\s+([0-9.]+)\s+([0-9.]+)"
-    official_beta_pb.append([statistics.fmean(float(x[3]) for x in re.findall(row, parts[i + 1]))
-                             for i in range(1, len(parts), 2)])
+    (official_beta_pb if sid in CALIB_BETA_IDS else later_beta_pb).append(
+        [statistics.fmean(float(x[3]) for x in re.findall(row, parts[i + 1])) for i in range(1, len(parts), 2)])
 official_beta_pb = np.array(official_beta_pb)
 (HERE / "data/official_beta_per_budget.json").write_text(json.dumps(official_beta_pb.tolist()) + "\n")
+(HERE / "data/official_beta_later_per_budget.json").write_text(json.dumps(later_beta_pb) + "\n")
 
 # Extra statistics (judge, name ability, replays).
 ex = json.loads((HERE / "data/extra_stats.json").read_text())
@@ -479,6 +509,22 @@ for tag, t in (("recent_conf", "RC"), ("all_conf", "AC")):
             m, se = ratio_se(w, alc[a] - alc[b], zb["draw_id"])
             put(f"Pair{t}{N}{L}", m, "+.4f")
             put(f"Pair{t}{N}{L}Se", se, ".4f")
+    # The official baseline is Beta(2,2): its simulated ALC, for a like-for-like comparison with official runs.
+    for lab, L in (("un", "U"), ("own", "O")):
+        w = np.ones(len(bins)) if lab == "un" else OWN_SHARE[bins] / ts[bins]
+        w = w / w.mean()
+        put(f"SimBtwo{t}{L}", float((w * alc["beta_a2"]).sum() / w.sum()), ".4f")
+    # Check on Beta runs made after the model choice: their shares alone, and pooled with the first three.
+    for key, K in (("test_pool_later", "Later"), ("test_pool_pooled", "Pooled")):
+        sh = np.array(tps[key]["bin_share"])
+        w = sh[bins] / ts[bins]
+        w = w / w.mean()
+        for a_, b_, N in (("L5", "beta", "LfiveBeta"), ("L5", "L2c", "LfiveLtwoc"), ("L5", "beta_a2", "LfiveBtwo")):
+            m, se = ratio_se(w, alc[a_] - alc[b_], zb["draw_id"])
+            put(f"Sh{K}{t}{N}", m, "+.4f")
+            put(f"Sh{K}{t}{N}Se", se, ".4f")
+            put(f"Sh{K}{t}{N}Abs", abs(m), ".4f")
+        put(f"Sh{K}{t}SimBtwo", float((w * alc["beta_a2"]).sum() / w.sum()), ".4f")
     # Sampling error of the 26-group share estimate: resample the group evaluations' bins.
     for a, b, N in (("L5", "beta", "LfiveBeta"), ("L5", "L2c", "LfiveLtwoc"), ("L5", "L6", "LfiveLsix")):
         d = alc[a] - alc[b]

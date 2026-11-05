@@ -129,16 +129,21 @@
 \newcommand{\ConfNine}{119}
 \newcommand{\ConfEight}{385}
 \newcommand{\ConfSeven}{96}
-\newcommand{\OffTables}{7}
+\newcommand{\OffTables}{10}
 \newcommand{\OffPairsMin}{44}
 \newcommand{\OffPairsMax}{76}
 \newcommand{\OffPairsLarge}{2}
 \newcommand{\OffPairsLargeValue}{113}
-\newcommand{\OffTablesNine}{5}
+\newcommand{\OffTablesNine}{8}
 \newcommand{\OffTablesEight}{2}
-\newcommand{\OffGroupEvals}{61}
-\newcommand{\OffDistinctGroups}{54}
+\newcommand{\OffGroupEvals}{88}
+\newcommand{\OffDistinctGroups}{70}
 \newcommand{\OffDistinctBench}{7}
+\newcommand{\OffBetaLaterN}{3}
+\newcommand{\OffBetaAllSd}{0.0174}
+\newcommand{\OffBetaLaterRuns}{0.2190, 0.1777, 0.1835}
+\newcommand{\OffBetaLaterMean}{0.1934}
+\newcommand{\TabBetaLaterRow}{Beta(2,2), runs after model selection & 3 & 0.2190, 0.1777, 0.1835 & 0.1934 (0.0129) \\}
 \newcommand{\OffBetaN}{3}
 \newcommand{\OffBetaMean}{0.1778}
 \newcommand{\OffBetaSd}{0.0085}
@@ -163,8 +168,13 @@
 \newcommand{\OffBetaBlastMax}{0.153}
 \newcommand{\RunsNeededLow}{268}
 \newcommand{\RunsNeededHigh}{602}
-\newcommand{\RunsNeededOurs}{76}
-\newcommand{\SpreadRatio}{4}
+\newcommand{\RunsNeededOurs}{316}
+\newcommand{\SpreadRatio}{13}
+\newcommand{\OffBetaAllN}{6}
+\newcommand{\OffBetaAllRuns}{0.1867, 0.1698, 0.1769, 0.2190, 0.1777, 0.1835}
+\newcommand{\OffBetaAllMean}{0.1856}
+\newcommand{\OffBetaAllSe}{0.0071}
+\newcommand{\OffBetaAllRange}{0.0493}
 \newcommand{\RunsNeededPaired}{18}
 \newcommand{\BestOfTwentyShift}{0.030}
 \newcommand{\ConfGammaOneBzero}{0.2579}
@@ -190,7 +200,10 @@
 1004796 & V3 & 9 & 7 & 0.1711 & 0.2401 & 0.1478 \\
 1004970 & V3 with uncertainty band & 9 & 7 & 0.1876 & 0.2341 & 0.1644 \\
 1032881 & Beta(2,2) baseline & 9 & 7 & 0.1698 & 0.2500 & 0.1277 \\
-1032882 & Beta(2,2) baseline & 8 & 7 & 0.1769 & 0.2500 & 0.1533 \\}
+1032882 & Beta(2,2) baseline & 8 & 7 & 0.1769 & 0.2500 & 0.1533 \\
+1034630 & Beta(2,2) baseline & 9 & 7 & 0.2190 & 0.2500 & 0.1824 \\
+1034631 & Beta(2,2) baseline & 9 & 7 & 0.1777 & 0.2500 & 0.1404 \\
+1034661 & Beta(2,2) baseline & 9 & 7 & 0.1835 & 0.2500 & 0.1429 \\}
 \newcommand{\TpGroups}{26}
 \newcommand{\TpPq}{0.136}
 \newcommand{\TrainPq}{0.184}
@@ -201,6 +214,10 @@
 \newcommand{\RecentGroups}{328}
 \newcommand{\RecentBench}{35}
 \newcommand{\TpShareOwn}{0.115, 0.077, 0.231, 0.308, 0.269}
+\newcommand{\TpLaterGroups}{27}
+\newcommand{\TpLaterShare}{0.185, 0.222, 0.148, 0.148, 0.296}
+\newcommand{\TpLaterPq}{0.151}
+\newcommand{\TpPooledGroups}{53}
 \newcommand{\TpShareSim}{0.115, 0.077, 0.192, 0.308, 0.308}
 \newcommand{\TpFarShare}{58}
 \newcommand{\TpExtremeN}{7}
@@ -996,6 +1013,28 @@
 \newcommand{\PairRCExactStepO}{$-$0.0006}
 \newcommand{\PairRCExactStepOAbs}{0.0006}
 \newcommand{\PairRCExactStepOSe}{0.0000}
+\newcommand{\SimBtwoRCU}{0.2105}
+\newcommand{\SimBtwoRCO}{0.1841}
+\newcommand{\ShLaterRCLfiveBeta}{$-$0.0058}
+\newcommand{\ShLaterRCLfiveBetaAbs}{0.0058}
+\newcommand{\ShLaterRCLfiveBetaSe}{0.0003}
+\newcommand{\ShLaterRCLfiveLtwoc}{$-$0.0006}
+\newcommand{\ShLaterRCLfiveLtwocAbs}{0.0006}
+\newcommand{\ShLaterRCLfiveLtwocSe}{0.0002}
+\newcommand{\ShLaterRCLfiveBtwo}{$-$0.0091}
+\newcommand{\ShLaterRCLfiveBtwoAbs}{0.0091}
+\newcommand{\ShLaterRCLfiveBtwoSe}{0.0004}
+\newcommand{\ShLaterRCSimBtwo}{0.1958}
+\newcommand{\ShPooledRCLfiveBeta}{$-$0.0065}
+\newcommand{\ShPooledRCLfiveBetaAbs}{0.0065}
+\newcommand{\ShPooledRCLfiveBetaSe}{0.0003}
+\newcommand{\ShPooledRCLfiveLtwoc}{$-$0.0014}
+\newcommand{\ShPooledRCLfiveLtwocAbs}{0.0014}
+\newcommand{\ShPooledRCLfiveLtwocSe}{0.0002}
+\newcommand{\ShPooledRCLfiveBtwo}{$-$0.0109}
+\newcommand{\ShPooledRCLfiveBtwoAbs}{0.0109}
+\newcommand{\ShPooledRCLfiveBtwoSe}{0.0004}
+\newcommand{\ShPooledRCSimBtwo}{0.1901}
 \newcommand{\BootRCLfiveBetaLo}{$-$0.0089}
 \newcommand{\BootRCLfiveBetaLoAbs}{0.0089}
 \newcommand{\BootRCLfiveBetaHi}{$-$0.0056}
@@ -1077,6 +1116,28 @@
 \newcommand{\PairACExactStepO}{$-$0.0004}
 \newcommand{\PairACExactStepOAbs}{0.0004}
 \newcommand{\PairACExactStepOSe}{0.0000}
+\newcommand{\SimBtwoACU}{0.2136}
+\newcommand{\SimBtwoACO}{0.1826}
+\newcommand{\ShLaterACLfiveBeta}{$-$0.0041}
+\newcommand{\ShLaterACLfiveBetaAbs}{0.0041}
+\newcommand{\ShLaterACLfiveBetaSe}{0.0003}
+\newcommand{\ShLaterACLfiveLtwoc}{$-$0.0008}
+\newcommand{\ShLaterACLfiveLtwocAbs}{0.0008}
+\newcommand{\ShLaterACLfiveLtwocSe}{0.0002}
+\newcommand{\ShLaterACLfiveBtwo}{$-$0.0078}
+\newcommand{\ShLaterACLfiveBtwoAbs}{0.0078}
+\newcommand{\ShLaterACLfiveBtwoSe}{0.0004}
+\newcommand{\ShLaterACSimBtwo}{0.1937}
+\newcommand{\ShPooledACLfiveBeta}{$-$0.0046}
+\newcommand{\ShPooledACLfiveBetaAbs}{0.0046}
+\newcommand{\ShPooledACLfiveBetaSe}{0.0003}
+\newcommand{\ShPooledACLfiveLtwoc}{$-$0.0016}
+\newcommand{\ShPooledACLfiveLtwocAbs}{0.0016}
+\newcommand{\ShPooledACLfiveLtwocSe}{0.0002}
+\newcommand{\ShPooledACLfiveBtwo}{$-$0.0092}
+\newcommand{\ShPooledACLfiveBtwoAbs}{0.0092}
+\newcommand{\ShPooledACLfiveBtwoSe}{0.0004}
+\newcommand{\ShPooledACSimBtwo}{0.1883}
 \newcommand{\BootACLfiveBetaLo}{$-$0.0067}
 \newcommand{\BootACLfiveBetaLoAbs}{0.0067}
 \newcommand{\BootACLfiveBetaHi}{$-$0.0035}

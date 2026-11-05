@@ -70,12 +70,21 @@ import json  # noqa: E402
 
 lad = json.loads((HERE / "data/ladder_summary.json").read_text())
 off = np.array(json.loads((HERE / "data/official_beta_per_budget.json").read_text()))
+off_later = json.loads((HERE / "data/official_beta_later_per_budget.json").read_text())
+# Simulated Beta(2,2), the prior of the official baseline archive, with and without test weights.
+zb = np.load(HERE / "data/baselines_all_conf.npz")
+share = np.array(json.loads((HERE / "data/test_pool_stats.json").read_text())["test_pool"]["bin_share"])
+bins = np.minimum((np.abs(zb["p"] - 0.5) / 0.1).astype(int), 4)
+w = share[bins] / (np.bincount(bins, minlength=5) / len(bins))[bins]
+sim_un, sim_own = zb["beta_a2"].mean(0), (w[:, None] * zb["beta_a2"]).sum(0) / w.sum()
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(5.5, 2.3))
 for run in off:
     ax1.plot(x, run, color="#999999", lw=0.8, marker="o", ms=2, alpha=0.8)
+for run in off_later:
+    ax1.plot(x, run, color="#999999", lw=0.8, ls=":", marker="o", ms=2, alpha=0.8)
 ax1.plot(x, off.mean(0), color="#000000", lw=1.4, marker="o", ms=3)
-ax1.plot(x, lad["all_conf"]["beta_pb_un"], color="#0072B2", lw=1.3, ls="--", marker="s", ms=2.5)
-ax1.plot(x, lad["all_conf"]["beta_pb_own"], color="#D55E00", lw=1.3, marker="s", ms=2.5)
+ax1.plot(x, sim_un, color="#0072B2", lw=1.3, ls="--", marker="s", ms=2.5)
+ax1.plot(x, sim_own, color="#D55E00", lw=1.3, marker="s", ms=2.5)
 ax1.text(2.6, 0.224, "simulator, unweighted", fontsize=7, color="#0072B2", ha="left")
 ax1.text(0.1, 0.126, "simulator, test weights", fontsize=7, color="#D55E00", ha="left")
 ax1.text(3.05, 0.177, "official runs\n(mean in black)", fontsize=7, color="#000000", ha="left", va="center")

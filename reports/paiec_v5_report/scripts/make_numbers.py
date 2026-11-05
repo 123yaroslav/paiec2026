@@ -235,8 +235,7 @@ if l5_alcs:
         "so the official results check that L5 runs but do not confirm the simulated ranking.")
 else:
     OUT["LfiveOfficialSentence"] = (
-        r"Finally, no official run of L5 had started by \UnscoredAsOf\ because the platform queue stalled, "
-        "so no official result supports the simulated ranking.")
+        r"Finally, the stalled platform queue left L5 without an official run by \UnscoredAsOf.")
 put("OffVtwoBzero", by_archive["semantic_selected_bundled.zip"]["b0"], ".4f")
 put("OffVthree", by_archive["semantic_v3_bundled.zip"]["alc"], ".4f")
 put("OffVthreeBzero", by_archive["semantic_v3_bundled.zip"]["b0"], ".4f")
@@ -388,6 +387,23 @@ put("JudgeSimWeight", rep_["judge_sim_best_weight"]["value"], ".1f")
 put("JudgeSimGain", rep_["judge_sim_gain"]["value"], ".5f")
 put("ColabUnits", rep_["colab_units_own"]["value"], ".1f")
 put("LfiveSeconds", rep_["l5_runtime_seconds_per_draw_m4"]["value"])
+so_budgets = [0, 1, 3, 7, 15, 31]
+# Encoder cost with the platform's worker restart at every budget (scripts/time_encoder.py on Colab CPU).
+enc_ = json.loads((HERE / "data/encode_timing.json").read_text())
+draw_s = list(enc_["draw_cold_encode_s"].values())
+groups_per_draw = statistics.fmean(enc_["groups"].values())
+load_s = statistics.median(enc_["load_s"][1:])
+per_group_s = (statistics.fmean(draw_s) + 2 * len(so_budgets) * load_s) / groups_per_draw
+put("EncTextSec", enc_["per_text_mean"], ".2f")
+put("EncDrawMin", statistics.fmean(draw_s) / 60, ".0f")
+put("EncDrawMinLo", min(draw_s) / 60, ".0f")
+put("EncDrawMinHi", max(draw_s) / 60, ".0f")
+put("EncLoadSec", load_s, ".1f")
+put("EncGroupsPerDraw", groups_per_draw, ".0f")
+put("EncMaxGroups", int(8 * 3600 / per_group_s // 10 * 10))
+put("EncPerBudgetLo", min(r["encoded"] for r in enc_["encoded_per_budget"]))
+put("EncPerBudgetHi", max(r["encoded"] for r in enc_["encoded_per_budget"]))
+put("EncDraws", len(draw_s))
 put("GridDraws", rep_["grid_tuning_draws"]["value"])
 lad_rc = LADDER["recent_conf"]
 put("LadRCOLfiveSeRel", 100 * lad_rc["L5_own_se"] / lad_rc["beta_own"], ".2f")

@@ -176,9 +176,10 @@ The name ability of a normalized model name is the mean, over its training group
 In simulation the name ability comes from the four other benchmark folds only. There, it has a positive within-benchmark Spearman correlation with group accuracy on \NamePos\% of \NameBench\ held-out benchmarks with at least five named groups (median \NameMedian).
 
 \subsection{Final submission}
+\label{sec:final}
 The final archive, L5, uses $\tau_c=2.5$, $\tau_d=1.0$, $\sigma_e^2=1$, $h=0.03$, $\sigma_k^2=3$, $\gamma=0.3$, the date prior and the name ability with weight 0.8.
 It holds the E5 weights, the prior network, the name table and the code (\ArchiveFinalMB\ megabytes) and declares no \texttt{models.txt}.
-It runs on CPU with one prediction worker, in about \LfiveSeconds\ seconds per simulated draw on an M4 laptop.
+It runs on CPU with one prediction worker, which the platform restarts at every budget, so the encoder runs again for each budget. A draw of \EncGroupsPerDraw\ groups then takes \EncDrawMinLo\ to \EncDrawMinHi\ minutes on a two-vCPU Colab CPU runtime (Appendix~\ref{app:repro}).
 Caches of embeddings, logits and level fits are keyed by content hashes, so no prediction depends on earlier calls.
 No predictor reads any group identifier.
 
@@ -284,7 +285,7 @@ In the wide level model alone, sharing the benchmark offset between the two subj
 
 \begin{table}[t]
 \centering
-\caption{\textbf{Under test weights the wide prior and the date and name offsets win, while without them the narrow model is best.} Official-structure simulator, the same 600 confirmation draws (seeds from 300,000) in each population. First row is the Beta(1,1) ALC, other rows are differences from it, lower is better. Rows with own labels only use the labels of the target group and share nothing across subjects. Standard errors over draws are 0.0001 to 0.0003 in every cell, and paired differences between rows have standard errors near 0.0001.}
+\caption{\textbf{Under test weights the wide prior and the date and name offsets win, while without them the narrow model is best.} Official-structure simulator, the same 600 confirmation draws (seeds from 300,000) in each population. First row is the Beta(1,1) ALC, other rows are differences from it, lower is better. Rows with own labels only use the labels of the target group and share nothing across subjects. Standard errors are 0.0001 to 0.0003 per cell and near 0.0001 for paired differences between rows.}
 \label{tab:ladder}
 \small
 \begin{tabular}{lrrrr}
@@ -331,18 +332,17 @@ A replay of the L5 runtime itself on \RepCheckDraws\ draws (\RepCheckGroups\ gro
 
 \subsection{Single formative runs cannot rank these methods}
 \label{sec:res-formative}
-Three runs of the Beta(2,2) baseline archive scored \OffBetaRuns\ (mean \OffBetaMean, standard deviation \OffBetaSd).
+Three runs of the Beta(2,2) baseline archive scored \OffBetaRuns\ (mean \OffBetaMean, standard deviation \OffBetaSd, Table~\ref{tab:formative}).
 Public repositories of two other teams report standard deviations of 0.016 over 20 runs~\citep{veseluhha} and 0.024 over 4 runs~\citep{shashwat}.
 Because every run gets its own draw, comparisons between archives are unpaired.
 Detecting a difference of \ConfFullAbs\ with a two-sided 5\% test and 80\% power needs \RunsNeededLow\ runs per archive at a standard deviation of 0.016 and \RunsNeededOurs\ at our \OffBetaSd. On a shared simulated draw \RunsNeededPaired\ draws suffice.
 The leaderboard shows each team's best run, and for 20 runs with a standard deviation of 0.016 the expected best run lies about \BestOfTwentyShift\ below the team's mean.
 One of these teams reports a 20-run mean of 0.1765 and a leaderboard entry of 0.139~\citep{veseluhha}.
 The final evaluation scores each team once on a common set, so the mean is the relevant quantity.
-Our repeated runs stalled in the platform queue on 4 November (Table~\ref{tab:formative}).
 
 \begin{table}[t]
 \centering
-\caption{\textbf{Formative scores so far are single draws or small samples.} Official Brier ALC per run, lower is better. Each run is scored on its own random draw of 8 or 9 groups. Runs marked not started were still waiting in the platform queue on \UnscoredAsOf.}
+\caption{\textbf{Formative scores are single draws or small samples.} Official Brier ALC per run, lower is better, each on its own draw of 8 or 9 groups. Not started means queued on \UnscoredAsOf.}
 \label{tab:formative}
 \small
 \begin{tabular}{lcll}
@@ -363,10 +363,9 @@ L5, final & \TabLfiveRuns & \TabLfiveAlc & \TabLfiveMean \\
 Item response theory models a correct answer through subject ability and item difficulty~\citep{lord1980} and has been applied to NLP leaderboards~\citep{rodriguez2021}.
 The tinyBenchmarks method estimates a benchmark score from a few items with item parameters fitted on many models of that benchmark~\citep{polo2024}, which a cold start lacks.
 Observational scaling laws predict scores from capabilities measured on known benchmarks~\citep{ruan2024}, not item by item on unseen ones.
-Text-based difficulty estimation works within a domain~\citep{benedetto2023}, and we measure its transfer to new benchmarks.
-Amortized calibration predicts IRT difficulty from question content~\citep{truong2025}, the role of our text prior, which we find transfers little to new benchmarks.
+Text-based difficulty estimation works within a domain~\citep{benedetto2023}, and amortized calibration predicts IRT difficulty from question content~\citep{truong2025}, the role of our text prior, which we find transfers little to new benchmarks.
 Assessors predict a system's success on an instance~\citep{hernandez2022}, and a generic assessor does so for a new model tested on about 100 reference instances~\citep{pacchiardi2024}, while PAIEC gives at most 31 labels, all from the new benchmark.
-Our level model is a random-intercept logistic model with partial pooling~\citep{efron1975,gelman2007}, and the judge follows the use of LLMs as graders~\citep{zheng2023}.
+Our level model is a random-intercept logistic model with partial pooling~\citep{efron1975,gelman2007}.
 None of these settings combines unseen benchmarks with a few labels per subject, which is the regime PAIEC scores.
 
 \section{Limitations}
@@ -380,15 +379,15 @@ On groups within 0.1 of 50\% accuracy L2c is better than L5 by \BinRCLfiveLtwocZ
 The bootstrap ignores that some groups recur across runs, so it understates this uncertainty.
 If the final pool resembles training data more than the formative pool, L2c would score about \PairAFLfiveLtwocUAbs\ better than L5 (Table~\ref{tab:ladder}).
 
-The date prior's two coefficients were fitted on all training benchmarks, including those held out in simulation, which slightly favors L4 and L5 there. The name ability is fold-specific in simulation.
+The date prior was fitted on all training benchmarks, including those held out in simulation, which slightly favors L4 and L5 there, while the name ability is fold-specific.
 The same-item shift relies on assumption A2. If subjects on one benchmark do not share items, the true gain is smaller by up to the same-item step, \PairRCExactStepOAbs\ under test weights on recent subjects.
 Confirmation draws correct for tuning but not for design choices made before them, such as the simulator itself.
-Smaller mismatches between training and runtime and the omitted benchmarks are listed in Appendix~\ref{app:repro}.
+Appendix~\ref{app:repro} lists smaller mismatches and the omitted benchmarks.
 \LfiveOfficialSentence
 
 \section{Conclusion}
 \label{sec:conclusion}
-For cold-start predictive evaluation in PAIEC, our measurements point away from text and toward label sharing and calibration.
+Our measurements point away from text and toward label sharing and calibration.
 A frozen-encoder prior trained on \NBenchKept\ benchmarks changed ALC by \LoboBRelAbs\% in leave-benchmark-out simulation, while sharing labels across subjects and items carried most of the gain, also against a Beta prior tuned to the test pool.
 The feedback of a constant-prediction baseline calibrated our simulator to the test pool and changed which model we submit.
 
@@ -422,7 +421,7 @@ The feedback of a constant-prediction baseline calibrated our simulator to the t
 \appendix
 \section{Reproduction}
 \label{app:repro}
-Paths are relative to the project root. All CPU steps, the simulator and the runtime tests ran on the Mac with Python 3.12.12, torch 2.14.1, transformers 5.19.0, numpy 2.5.3, pandas 3.0.6, pyarrow 25.0.1 and huggingface\_hub 1.33.0. GPU steps ran on Google Colab L4 runtimes with their preinstalled torch and transformers, driven by the colab command-line tool 0.7.4. Two mismatches remain between training and runtime. The prior's training weights give groups with repeated trials less weight than the score does, and training embeddings were stored in float16 while the runtime uses float32. The corpus omits \NBenchNotFetched\ large or single-subject benchmarks and keeps the most-answered items of large benchmarks (Section~\ref{sec:data}). \TODO{Add the public repository link.}
+Paths are relative to the project root. All CPU steps, the simulator and the runtime tests ran on the Mac with Python 3.12.12, torch 2.14.1, transformers 5.19.0, numpy 2.5.3, pandas 3.0.6, pyarrow 25.0.1 and huggingface\_hub 1.33.0. GPU steps ran on Google Colab L4 runtimes with their preinstalled torch and transformers, driven by the colab command-line tool 0.7.4. Two mismatches remain between training and runtime. The prior's training weights give groups with repeated trials less weight than the score does, and training embeddings were stored in float16 while the runtime uses float32. The corpus omits \NBenchNotFetched\ large or single-subject benchmarks and keeps the most-answered items of large benchmarks (Section~\ref{sec:data}). Because in-memory caches last one budget, L5 encodes \EncPerBudgetLo\ to \EncPerBudgetHi\ texts per budget of a draw. On a two-vCPU Colab CPU runtime with one torch thread this costs \EncTextSec\ seconds per text and \EncLoadSec\ seconds per model load, so a run reaches the 8-hour limit only at about \EncMaxGroups\ groups, against 8 or 9 in a formative run. \TODO{Add the public repository link.}
 
 \paragraph{1. Download and build the corpus (local CPU).} The download fetches benchmark tables at the pinned revision and skips the four benchmarks listed in Section~\ref{sec:data}.
 \begin{lstlisting}
@@ -449,7 +448,7 @@ cd /content/run4 && RUNTIME_DIR=/content/run python export_z.py --tag B   # need
 \end{lstlisting}
 The last command writes \texttt{pairs\_z.parquet} with held-out logits from five benchmark folds and \texttt{prior\_B.npz}, the prior trained on all benchmarks (SHA-256 \texttt{486b104f\ldots}). The encoder comparison runs \texttt{feat\_bakeoff.py} and \texttt{train\_eval2.py} with \texttt{--item-keys-file} on the 600-item subset. The subject offsets come from \texttt{python colab\_jobs/fit\_subject\_priors.py}, which writes \texttt{date\_prior.json}, \texttt{v5/name\_ability.json} and \texttt{name\_ability\_folds.json} and reproduces our files exactly.
 
-\paragraph{3. Test-pool statistics and simulations (local CPU).} The first command computes the statistics of Section~\ref{sec:testpool}. The others reproduce Table~\ref{tab:ladder}, Figure~\ref{fig:budget} and the runtime replays. The baseline script reuses the ladder's draws and stops if they differ.
+\paragraph{3. Test-pool statistics and simulations (local CPU).} The first command computes the statistics of Section~\ref{sec:testpool}. The others reproduce Table~\ref{tab:ladder}, Figure~\ref{fig:budget}, the runtime replays and the encoder cost. The baseline script reuses the ladder's draws and stops if they differ.
 \begin{lstlisting}
 cd reports/paiec_v5_report
 python -B scripts/test_pool_stats.py
@@ -460,7 +459,10 @@ python -B scripts/extra_stats.py                                                
 cd ../.. && EX=bertaqa,cellverse,cruxeval,engdesign,erbench,kernelbench,liveaopsbench,researchcodebench,tau2_bench
 python -B colab_jobs/replay_runtime.py UNZIPPED_V2_DIR colab_jobs/results/replay_v2.parquet --seeds 0:120 \
   --min-date 2025-01-01 --exclude $EX
+python -B reports/paiec_v5_report/scripts/record_encoder_texts.py UNZIPPED_L5_DIR texts.json
+python reports/paiec_v5_report/scripts/time_encoder.py texts.json encode_timing.json  # CPU machine, next to v5/encoder.py
 \end{lstlisting}
+The last two commands give the encoder cost of Section~\ref{sec:final}. The first writes item texts from measurement-db, so its output is not in the repository.
 The ladder and confirmation scripts import frozen copies of the simulator (\texttt{scripts/sim\_official\_v2\_snapshot.py}, SHA-256 \texttt{8da09880\ldots}, and \texttt{scripts/sim\_official\_snapshot.py}). The paired simulator rows came from \texttt{sim\_official.py --emb data/corpus\_full/item\_emb.npy --draws 120 --min-date 2025-01-01 --exclude \$EX --dump colab\_jobs/results/sim\_dump\_recent\_ex.parquet} with the variants Beta, L1c, L3, L4 and L5. The dump stores raw per-group ALC and $p$, so test weights are applied afterwards.
 
 \paragraph{4. Final archive.} This command rebuilds L5 and checks it with the validator of the organizers' starting kit, which is not part of our repository.
@@ -498,7 +500,7 @@ Of the 600 draws of the unweighted confirmation run, \ConfNine\ hold 9 groups, \
 
 \section{The LLM difficulty judge}
 \label{app:judge}
-Qwen3-8B~\citep{qwen3} rated item difficulty from 1 to 9 as the expected digit of its next-token distribution, with the prompt of Appendix~\ref{app:hyper}.
+Following the use of LLMs as graders~\citep{zheng2023}, Qwen3-8B~\citep{qwen3} rated item difficulty from 1 to 9 as the expected digit of its next-token distribution, with the prompt of Appendix~\ref{app:hyper}.
 It rated \JudgeRated\ of \JudgeItems\ sampled items before we stopped the run to save compute, so long items are missing.
 The within-benchmark Spearman correlation between rating and item accuracy had median \JudgeMedian\ and was negative, the useful direction, on \JudgeNeg\% of \JudgeBench\ benchmarks. Between benchmarks it was \JudgeBetween.
 In the simulator on rated items with test weights, the best weight of \JudgeSimWeight\ on the standardized rating improved ALC by only \JudgeSimGain\ and hurt budget 0.
@@ -540,6 +542,6 @@ Model & \normalfont\footnotesize Revision & Use \\
 \bottomrule
 \end{tabular}
 \end{table}
-\paragraph{Compute.} GPU work ran on Google Colab L4 instances and used \ColabUnits\ compute units of our own. Corpus building, simulation, replays, packaging and this report ran on an Apple M4 laptop.
+\paragraph{Compute.} GPU work ran on Google Colab L4 instances, and one Colab CPU runtime timed the encoder. Together they used \ColabUnits\ compute units of our own. Corpus building, simulation, replays, packaging and this report ran on an Apple M4 laptop.
 
 \end{document}

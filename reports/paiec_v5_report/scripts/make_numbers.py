@@ -223,14 +223,14 @@ put("OffBetaLaterRuns", ", ".join(f"{v:.4f}" for v in later_beta))
 if later_beta:
     put("OffBetaLaterMean", statistics.fmean(later_beta), ".4f")
 OUT["TabBetaLaterRow"] = (rf"Beta(2,2), later runs & {len(later_beta)} & "
-                          + ", ".join(f"{v:.4f}" for v in later_beta)
+                          + ", ".join(f"{v:.3f}" for v in later_beta)
                           + (f" & {statistics.fmean(later_beta):.4f} ({statistics.stdev(later_beta) / math.sqrt(len(later_beta)):.4f})"
                              if len(later_beta) > 1 else " & ") + r" & 0.250 \\") if later_beta else ""
 put("OffBetaN", len(beta_runs))
 put("OffBetaMean", statistics.fmean(beta_runs), ".4f")
 put("OffBetaSd", statistics.stdev(beta_runs), ".4f")
 put("OffBetaSe", statistics.stdev(beta_runs) / math.sqrt(len(beta_runs)), ".4f")
-put("OffBetaRuns", ", ".join(f"{v:.4f}" for v in beta_runs))
+put("OffBetaRuns", ", ".join(f"{v:.3f}" for v in beta_runs))
 put("OffBetaRange", max(beta_runs) - min(beta_runs), ".4f")
 by_archive = {r["archive"]: r for r in sorted(runs, key=lambda r: -r["id"])}  # earliest run per archive
 put("OffVtwo", by_archive["semantic_selected_bundled.zip"]["alc"], ".4f")
@@ -251,7 +251,7 @@ for archives, name in TAB_ARCHIVES:
     alcs = [r["alc"] for r in done]
     n_wait = sum(1 for w in waiting if w["archive"] in archives and w.get("status") == "Submitted")
     OUT[f"Tab{name}Runs"] = f"{len(alcs)}" + (f" ({n_wait} queued)" if n_wait else "")
-    OUT[f"Tab{name}Alc"] = ", ".join(f"{v:.4f}" for v in alcs) if alcs else "none"
+    OUT[f"Tab{name}Alc"] = ", ".join(f"{v:.3f}" for v in alcs) if alcs else "none"
     OUT[f"Tab{name}Mean"] = (f"{statistics.fmean(alcs):.4f} ({statistics.stdev(alcs) / math.sqrt(len(alcs)):.4f})"
                              if len(alcs) > 1 else (f"{alcs[0]:.4f}" if alcs else ""))
     OUT[f"Tab{name}Bzero"] = f"{statistics.fmean(r['b0'] for r in done):.3f}" if done else ""
@@ -598,6 +598,9 @@ put("SidePiFromLthree", sm["pi_from_L3"], ".2f")
 put("SidePiFromLfour", sm["pi_from_L4"], ".2f")
 put("SidePiFromLfive", sm["pi_from_L5"], ".2f")
 put("SidePiFromLfourLow", sm["pi_from_L4_lower95"], ".2f")
+a, b = f"{sm['pi_from_L4']:.2f}", f"{sm['pi_from_L5']:.2f}"
+OUT["SidePiFromPhrase"] = (rf"both point to $\pi$ near {a}" if a == b
+                           else rf"point to $\pi$ near {a} and {b}")
 put("SidePiLowTwo", sm["pi_lower95_L4_two_sided"], ".2f")
 put("SideLthreeSimAtLow", sm["L3_b0_sim_at_pi_lower95"], ".4f")
 put("SideLsixCross", sm["L6_crosses_beta"], ".2f")

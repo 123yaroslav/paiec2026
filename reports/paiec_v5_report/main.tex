@@ -307,7 +307,7 @@ This is consistent with most test groups lying below 50\% accuracy, while \SideT
 
 To size the effect we reweight simulated groups within each $|p-0.5|$ bin so that a share $\pi$ lies below 0.5.
 At the training share of \SideTrainShare\ the simulated budget-0 gap between L4 and L3 is \SideGapLfourSimTrain, and even at $\pi=1$ it reaches only \SideGapLfourSimMax, below the official \SideGapLfour\ (standard error \SideGapLfourSe). The one-sided lower 95\% bound of the official gap needs $\pi\ge\SidePiLow$ (two-sided, \SidePiLowTwo).
-No single share fits all three archives. The official L4 and L5 scores alone point to $\pi$ near \SidePiFromLfour\ and \SidePiFromLfive, and the L4 score alone needs $\pi\ge\SidePiFromLfourLow$, but the simulated L3 rises to \SideLthreeSimAtLow\ at $\pi=\SidePiLow$ against its official \SideBzeroLthree, which alone points to \SidePiFromLthree. The gap between L4 and L3 removes the part they share, the text prior, so we use it.
+No single share fits all three archives. The official L4 and L5 scores alone \SidePiFromPhrase, and the L4 score alone needs $\pi\ge\SidePiFromLfourLow$, but the simulated L3 rises to \SideLthreeSimAtLow\ at $\pi=\SidePiLow$ against its official \SideBzeroLthree, which alone points to \SidePiFromLthree. The gap between L4 and L3 removes the part they share, the text prior, so we use it.
 L5 beats L3 only for $\pi<\SideBreakeven$ (Figure~\ref{fig:testpool}b). L3 is better by \SideFiveThreeLowAbs\ at $\pi=\SidePiLow$ and by \SideFiveThreeOneAbs\ at $\pi=1$ (standard errors about 0.0001), and the tuned L6, with larger offsets, falls behind \BB\ for $\pi>\SideLsixCross$.
 The difference of L3 from Beta(1,1) stays between \SideThreeLo\ and \SideThreeHi\ over the whole range, and its official budget-0 score is below 0.25. On all subjects L5 and L3 differ by at most \SideAllLoAbs, because older subjects get small offsets.
 Official mean ALC cannot decide it. L3 averages \OffLthreeMean, L4 \OffLfourMean\ and L5 \OffLfiveMean, but L3 is also behind Beta(2,2) at \OffBetaAllMean\ and V2 at \OffVtwoMean, all within the run-to-run standard deviation of \OffBetaAllSd.
@@ -321,11 +321,11 @@ The leaderboard keeps each team's best run, which for 20 runs lies about \BestOf
 
 \begin{table}[t]
 \centering
-\caption{\textbf{Formative scores are single draws or small samples, but budget-0 scores separate the archives with date and name offsets.} Official Brier ALC per run, lower is better, each on its own draw of 8 or 9 groups, and the mean budget-0 Brier score $B(0)$. Weight runs set the test weights. L1c and L2c pool builds of one model for the CPU and GPU images. Queued means not started on \UnscoredAsOf.}
+\caption{\textbf{Formative scores are single draws or small samples, but budget-0 scores separate the archives with date and name offsets.} Official Brier ALC per run, lower is better, each on its own draw of 8 or 9 groups, and the mean budget-0 Brier score $B(0)$. Weight runs set the test weights. L1c and L2c pool builds of one model for the CPU and GPU images.}
 \label{tab:formative}
 \footnotesize
-\setlength{\tabcolsep}{4pt}
-\begin{tabular}{lcp{5.4cm}lc}
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{lcp{6.15cm}lc}
 \toprule
 Archive & Runs & ALC per run & Mean (s.e.) & $B(0)$ \\
 \midrule

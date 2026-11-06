@@ -24,11 +24,14 @@ HERE = Path(__file__).resolve().parents[1]
 CORPUS = ROOT / "data/corpus_full"
 CV = ROOT / "colab_jobs/results/bake2/work/results"
 OUT = {}
+RAW = {}  # unrounded values of numeric macros, for the short forms at the end
 
 
 def put(name, value, fmt=None):
     if not re.fullmatch(r"[A-Za-z]+", name):
         raise ValueError(name)
+    if isinstance(value, (int, float)) or type(value).__module__ == "numpy":
+        RAW[name] = float(value)
     OUT[name] = value if fmt is None else format(value, fmt)
     if fmt and fmt.startswith("+"):
         # Typeset the sign as a math minus or plus, keep the magnitude separately.
@@ -232,6 +235,9 @@ put("OffBetaSd", statistics.stdev(beta_runs), ".4f")
 put("OffBetaSe", statistics.stdev(beta_runs) / math.sqrt(len(beta_runs)), ".4f")
 put("OffBetaRuns", ", ".join(f"{v:.3f}" for v in beta_runs))
 put("OffBetaRange", max(beta_runs) - min(beta_runs), ".4f")
+OUT["TabBetaMeanR"] = f"{statistics.fmean(beta_runs):.3f} ({statistics.stdev(beta_runs) / math.sqrt(len(beta_runs)):.3f})"
+OUT["TabBetaLaterMeanR"] = (f"{statistics.fmean(later_beta):.3f} ({statistics.stdev(later_beta) / math.sqrt(len(later_beta)):.3f})"
+                            if len(later_beta) > 1 else "")
 by_archive = {r["archive"]: r for r in sorted(runs, key=lambda r: -r["id"])}  # earliest run per archive
 put("OffVtwo", by_archive["semantic_selected_bundled.zip"]["alc"], ".4f")
 
@@ -255,6 +261,8 @@ for archives, name in TAB_ARCHIVES:
     OUT[f"Tab{name}Mean"] = (f"{statistics.fmean(alcs):.4f} ({statistics.stdev(alcs) / math.sqrt(len(alcs)):.4f})"
                              if len(alcs) > 1 else (f"{alcs[0]:.4f}" if alcs else ""))
     OUT[f"Tab{name}Bzero"] = f"{statistics.fmean(r['b0'] for r in done):.3f}" if done else ""
+    OUT[f"Tab{name}MeanR"] = (f"{statistics.fmean(alcs):.3f} ({statistics.stdev(alcs) / math.sqrt(len(alcs)):.3f})"
+                              if len(alcs) > 1 else (f"{alcs[0]:.3f}" if alcs else ""))
     put(f"Off{name}N", len(alcs))
     if alcs:
         put(f"Off{name}Mean", statistics.fmean(alcs), ".4f")
@@ -616,6 +624,76 @@ put("SideKernelLo", sm["wide_kernel_minus_L3_range"][0], "+.4f")
 put("SideKernelHi", sm["wide_kernel_minus_L3_range"][1], "+.4f")
 put("SideAllLo", sm["all_L5_minus_L3_range"][0], "+.4f")
 put("SideAllHi", sm["all_L5_minus_L3_range"][1], "+.4f")
+
+# Short forms for the main text. ALC differences become percent of the Beta(1,1) ALC on the same draws.
+def pct(name, num, den, fmt="+.1f"):
+    put(name, 100 * num / den, fmt)
+
+
+for t in ("RC", "AC"):
+    for L in ("U", "O"):
+        put(f"P{t}{L}Beta", RAW[f"Lad{t}{L}Beta"], ".3f")
+        for N in ("Bhalf", "Btwo", "Lonec", "Ltwoc", "Wlevel", "Wexact", "Wkernel", "Lthree", "Lfour", "Lfive",
+                  "Lfivent", "Lsix", "Wown", "Lthreeown"):
+            pct(f"P{t}{L}{N}", RAW[f"Lad{t}{L}{N}"], RAW[f"Lad{t}{L}Beta"])
+        se = max(RAW[k] / RAW[f"Lad{t}{L}Beta"] for k in RAW if k.startswith(f"Lad{t}{L}") and k.endswith("Se"))
+        put(f"P{t}{L}SeMax", 100 * se, ".1f")
+bR, bA, bAU = RAW["LadRCOBeta"], RAW["LadACOBeta"], RAW["LadACUBeta"]
+pct("ShortTextThree", -RAW["PairRFTextThreeT"], bR, ".1f")
+pct("ShortThreeTwoc", -RAW["PairRFLthreeLtwocT"], bR, ".1f")
+pct("ShortTwocThreeAllU", RAW["PairAFLthreeLtwocU"], bAU, ".1f")
+pct("ShortBhalf", -RAW["LadRCOBhalf"], bR, ".1f")
+pct("ShortBhalfThree", -RAW["PairRCBhalfThreeO"], bR, ".1f")
+pct("ShortBtwo", RAW["LadRCOBtwo"], bR, ".1f")
+pct("ShortLevelShare", -RAW["PairRCLevelShareO"], bR, ".1f")
+pct("ShortExactStep", -RAW["PairRCExactStepO"], bR, ".1f")
+put("ShortShareFrac", 100 * RAW["PairRCShareThreeO"] / RAW["LadRCOLthree"], ".0f")
+pct("ShortDateName", -RAW["PairRFDateNameT"], bR, ".1f")
+put("ShortConfRel", RAW["ConfFullRelAbs"] if "ConfFullRelAbs" in RAW else float(OUT["ConfFullRelAbs"]), ".1f")
+put("ShortLoboRel", abs(float(OUT["LoboBRel"].replace("$-$", "-").replace("$+$", ""))), ".1f")
+for N in ("Two", "Three"):
+    pct(f"ShortRep{N}", -RAW[f"Rep{N}TDiffThree"], RAW[f"Rep{N}TBeta"], ".1f")
+recent = side["simulated"]["recent"]
+pis_ = np.array(recent["pi"][1:], dtype=float)
+beta_g = recent["beta_alc"][1:]
+i_lo = int(np.argmin(np.abs(pis_ - sm["pi_lower95_L4"])))
+pct("ShortFiveThreeLow", sm["L5_minus_L3_at_pi_lower95"][0], beta_g[i_lo], ".1f")
+pct("ShortFiveThreeOne", sm["L5_minus_L3_at_pi_one"][0], beta_g[-1], ".1f")
+pct("ShortFiveThreeTrain", -sm["L5_minus_L3_at_train_side"][0], recent["beta_alc"][0], ".1f")
+put("ShortPiLow", 100 * sm["pi_lower95_L4"], ".0f")
+_zr = np.load(HERE / "data/ladder_recent_conf.npz")
+# Table 1, third column: test weights with the share of groups below 0.5 that the official runs indicate.
+import sys as _sys
+_sys.path.insert(0, str(HERE / "scripts"))
+from side_of_half import weights as _side_weights
+_zb = np.load(HERE / "data/baselines_recent_conf.npz")
+_z3 = np.load(HERE / "data/baselines_l3_recent_conf.npz")
+assert np.allclose(_zb["p"], _zr["p"]) and np.allclose(_z3["L3"], _zr["L3"])
+_alc = {n: _zr[n] @ W6 for n in ("beta", "L1c", "L2c", "wide_level", "wide_exact", "wide_kernel", "L3", "L4", "L5")}
+_alc.update({"beta_a0.5": _zb["beta_a0.5"] @ W6, "beta_a2": _zb["beta_a2"] @ W6, "L3_own": _z3["L3_own"] @ W6})
+_pi = float(pis_[i_lo])
+put("ShortPiGrid", 100 * _pi, ".0f")
+put("ShortTrainBelow", 100 * recent["train_share_below"], ".0f")
+_w = _side_weights(_zr["p"], _pi, OWN_SHARE)
+_b = float((_w * _alc["beta"]).sum() / _w.sum())
+put("PRCSBeta", _b, ".3f")
+_se = []
+for n, N in (("beta_a0.5", "Bhalf"), ("beta_a2", "Btwo"), ("L1c", "Lonec"), ("L2c", "Ltwoc"), ("wide_level", "Wlevel"),
+             ("wide_exact", "Wexact"), ("wide_kernel", "Wkernel"), ("L3", "Lthree"), ("L4", "Lfour"), ("L5", "Lfive"),
+             ("L3_own", "Lthreeown")):
+    m_, se_ = ratio_se(_w, _alc[n] - _alc["beta"], _zr["draw_id"])
+    pct(f"PRCS{N}", m_, _b)
+    _se.append(100 * se_ / _b)
+put("PRCSSeMax", max(_se), ".1f")
+put("ShortTrainFar", 100 * np.mean(np.abs(_zr["p"] - 0.5) >= 0.3), ".0f")  # simulated groups, recent subjects
+put("ShortBreakeven", 100 * sm["breakeven_pi"], ".0f")
+put("ShortLsixCross", 100 * sm["L6_crosses_beta"], ".0f")
+for k in ("SimBtwoACU", "SimBtwoACO", "OffBetaAllMean", "OffBetaAllSd", "OffVtwoBzeroMean", "ConfFullBzero", "ConfGammaOneBzero",
+          "SideBzeroLthree", "SideBzeroLfour", "SideBzeroLfive", "OffLthreeMean", "OffLfiveMean", "OffLfourMean", "OffVtwoMean",
+          "TpPq", "TrainPq", "ConfFullAbs"):
+    put(f"R{k}", RAW[k] if k in RAW else float(OUT[k]), ".3f")
+put("QConfFullAbs", float(OUT["ConfFullAbs"]), ".4f")
+put("RSideGapLfourSimMax", sm["L5_minus_L3_at_pi_one"][0] * 0 + side["gaps"]["L4"]["sim_max"], ".3f")
 
 lines =["% Generated by scripts/make_numbers.py. Do not edit by hand."]
 lines += [f"\\newcommand{{\\{k}}}{{{v}}}" for k, v in OUT.items()]

@@ -16,7 +16,7 @@ logit = gamma * z + c + d_s + item shifts
 
 The submission runs on CPU and bundles the encoder, so it declares no Hugging Face repository. The report explains why the prior is wide. Test groups are much more extreme than training groups.
 
-The code also supports a release-date offset and a model-name ability offset (archives L4 and L5). They helped in simulation, but official runs showed that they raise the Brier score before any label, because most test groups lie below 50% accuracy. Section 7.4 of the report gives the evidence, so the final entry does not use them.
+The code also supports a release-date offset and a model-name ability offset (archives L4 and L5). They helped in simulation, but official runs showed that they raise the Brier score before any label, because most test groups lie below 50% accuracy. Section 6.4 of the report gives the evidence, so the final entry does not use them.
 
 ## Layout
 

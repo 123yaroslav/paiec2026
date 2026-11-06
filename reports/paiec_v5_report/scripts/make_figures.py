@@ -104,15 +104,16 @@ lo = side["summary"]["pi_lower95_L4"]
 ax2.axvspan(lo, 1.0, color="#DDDDDD", lw=0)
 ax2.axvline(rec["train_share_below"], color="#777777", lw=0.8, ls=":")
 for n in ("L2c", "L6", "L5", "L4", "L3"):
-    y = np.array([m for m, s_ in rec["alc_vs_beta"][n][1:]])
+    # Percent of the Beta(1,1) ALC at the same share, as in Table 1.
+    y = 100 * np.array([m for m, s_ in rec["alc_vs_beta"][n][1:]]) / np.array(rec["beta_alc"][1:])
     ax2.plot(pis, y, color=COL2[n], lw=1.6 if n == "L3" else 1.1, label=LAB2[n])
 ax2.axhline(0, color="#000000", lw=0.6)
-ax2.text(lo + 0.01, 0.0025, "official\nbudget-0\nscores", fontsize=6, va="top", ha="left")
-ax2.text(rec["train_share_below"] + 0.02, -0.0122, "training data", fontsize=6, va="bottom", ha="left")
+ax2.text(lo + 0.01, 1.4, "official\nbudget-0\nscores", fontsize=6, va="top", ha="left")
+ax2.text(rec["train_share_below"] + 0.02, -6.9, "training data", fontsize=6, va="bottom", ha="left")
 ax2.set_xlim(0, 1)
-ax2.set_ylim(-0.0125, 0.0055)
+ax2.set_ylim(-7.0, 3.1)
 ax2.set_xlabel("share of test groups below 0.5")
-ax2.set_ylabel("ALC minus Beta(1,1)")
+ax2.set_ylabel("ALC change vs Beta(1,1), %")
 ax2.set_title("(b) Test weights, recent subjects")
 handles, labels_ = ax2.get_legend_handles_labels()
 order = [labels_.index(LAB2[n]) for n in ("L3", "L4", "L5", "L6", "L2c")]

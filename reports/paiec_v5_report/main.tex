@@ -24,265 +24,201 @@
 \maketitle
 
 \begin{abstract}
-The Predictive AI Evaluation Competition (PAIEC) scores predicted probabilities that an AI system answers a task correctly, on private benchmarks, first without labels and then with a few revealed labels per system and benchmark.
-We report four findings from building our entry.
-First, a prior learned from task and system text with a frozen multilingual encoder (E5) on \NBenchKept\ public benchmarks transfers almost nothing to held-out benchmarks, and its score, a weighted area under the Brier learning curve (ALC), stays within \LoboBRelAbs\% of a \BB\ baseline that uses only the revealed labels.
-Second, sharing labels across systems on the same benchmark and across identical or similar items lowers ALC by \ConfFullRelAbs\% in a simulator of the official draws.
-Third, the official practice-phase (formative) test pool is more extreme than the training data. The feedback of a constant-prediction baseline reveals each group's distance from 50\% accuracy, and reweighting simulated groups to match it moves the simulated score of this baseline from \SimBtwoACU\ to \SimBtwoACO, against a mean of \OffBetaAllMean\ over \OffBetaAllN\ official runs.
-That feedback hides the side of 50\%, but official runs of models that shift their predictions show it. Offsets from release date and model name helped in simulation, but on the platform the date offset raised the Brier score before any label by \SideGapLfour\ and both by \SideGapLfive, which points to most test groups lying below 50\% accuracy.
-Our final model drops these offsets and keeps a wide prior. On fresh simulated draws of recent systems it lowers ALC by \LadRCOLthreeRelAbs\% at the training side of 50\% and by \SideThreeRelHighLo\% to \SideThreeRelHighHi\% at the side the official runs indicate, and without label sharing across systems it loses about half of that gain.
-Fourth, official runs of one baseline spread by \OffBetaAllRange\ over \OffBetaAllN\ draws and the leaderboard keeps each team's best run, so we compare submissions by repeated runs.
+The Predictive AI Evaluation Competition (PAIEC) asks for the probability that an AI system answers a task correctly on private benchmarks.
+Predictions start with no labels and then see a few revealed labels for each system and benchmark pair, called a group.
+We trained a prior from task and system text on \NBenchKept\ public benchmarks, and on held-out benchmarks it improved the score by only \ShortLoboRel\%.
+The gain comes from sharing revealed labels across systems on the same benchmark and across similar items, and from matching our simulator of the official draws to the hidden test pool.
+The feedback of the official constant-prediction baseline shows that test groups lie much farther from 50\% accuracy than training groups.
+Models that raise their predictions for recent systems scored worse before any label than the same model without this shift (Brier score \RSideBzeroLfour\ and \RSideBzeroLfive\ against \RSideBzeroLthree), which points to most test groups lying below 50\%.
+Both facts changed our final model.
+It uses a wider prior and no release-date or model-name offsets, and in the calibrated simulator it scores about 3\% better than a Beta-binomial baseline with a uniform prior that uses only the revealed labels.
+Single official runs are too noisy to confirm differences of this size.
 \end{abstract}
 
 \section{Introduction}
 \label{sec:intro}
-In PAIEC a submission maps a description of an AI system (the \emph{subject}) and a task (the \emph{item}) to a probability of a correct answer~\citep{paiec}.
-The test benchmarks are private, so every prediction starts cold at the benchmark level.
-For each subject and benchmark pair (a \emph{group}) the platform splits items into an acquisition pool and an evaluation pool and reveals acquisition labels at budgets of 0, 1, 3, 7, 15 and 31 labels.
-Each evaluation run scores a random \emph{draw} of about nine groups (Section~\ref{sec:task}).
+In PAIEC a submission receives a description of an AI system, the \emph{subject}, and of a task, the \emph{item}, and returns the probability of a correct answer~\citep{paiec}.
+The test benchmarks are private.
+For each subject and benchmark pair, which we call a \emph{group}, the platform reveals from 0 to 31 labels and scores the predictions on the remaining items with the Brier score.
+The score is the area under this learning curve (ALC), lower is better, and each run scores a random draw of 8 or 9 groups (Section~\ref{sec:task}).
 
-The obvious approach learns a prior from the text of items and subject descriptions on public benchmarks and adapts it to the revealed labels.
-Our earlier entries V2 and V3 followed it with frozen E5 embeddings and four or five training benchmarks~\citep{prevreport}.
-Over \OffVtwoN\ official runs, V2 averaged a Brier score of \OffVtwoBzeroMean\ before any label was revealed, close to the 0.25 of a constant prediction of 0.5.
-We asked whether more data fixes this and trained on \NBenchKept\ binary benchmarks of measurement-db, about \TrialRatio\ times more recorded responses than V3.
-It did not. In leave-benchmark-out simulation the best prior weight $\gamma$ was the smallest value we tried, and ALC matched the label-only \BB\ baseline within \LoboBRelAbs\% (Section~\ref{sec:res-prior}).
+A first idea is to learn a prior from item and subject text and update it with the revealed labels.
+Our earlier entries V2 and V3 did this with a frozen E5 encoder~\citep{e5} and four or five training benchmarks~\citep{prevreport}.
+Before any label, V2's official Brier score averaged \ROffVtwoBzeroMean, no better than a constant prediction of 0.5.
+We retrained the prior on \NBenchKept\ benchmarks with many times more responses, and on held-out benchmarks it improved ALC by only \ShortLoboRel\% (Section~\ref{sec:res-prior}).
 
-What helped was sharing label evidence (Section~\ref{sec:method}).
-The \emph{level model} fits a benchmark offset from the labels of every subject in the draw.
-A same-item shift uses labels of other subjects on the same item, and a similar-item shift uses labels of items with close E5 embeddings.
-On fresh simulated draws this lowered ALC by \ConfFullAbs\ (\ConfFullRelAbs\%), and \ConfShareStructure\% of the gain remained without the text prior (Figure~\ref{fig:budget}, Section~\ref{sec:res-structure}).
+What helps is the labels of other subjects.
+Our model shares a benchmark offset across all subjects in a draw and moves an item's prediction when other subjects answered that item or a similar one (Section~\ref{sec:method}).
+On the training distribution this lowers ALC by \ShortConfRel\% against a Beta-binomial baseline that uses only the group's own labels, and \ConfShareStructure\% of the gain remains without the text prior (Figure~\ref{fig:budget}).
 
-Our simulator first missed the official level badly. It gave the official \BB\ baseline an ALC of \SimBtwoACU, while its \OffBetaAllN\ official runs averaged \OffBetaAllMean.
-The reason is the test pool. Because the baseline predicts one constant per group, its official Brier and calibration scores reveal every group's distance from 50\% accuracy, and test groups are far more extreme than training groups (Section~\ref{sec:testpool}).
-Reweighting simulated groups to this distribution reproduces the official baseline curve (Figure~\ref{fig:testpool}a).
-It also changes the best model. The narrow prior chosen before is no better than \BB\ under these weights, while a wider prior helps (Section~\ref{sec:res-testpool}).
-Offsets from release date and model name helped further in simulation, where recent training systems mostly score above 50\%. On the platform the date offset raised the Brier score before any label by \SideGapLfour\ (standard error \SideGapLfourSe). In the simulator this needs about \SidePiLowPct\% or more of test groups below 50\%, and there L5 trails L3 by \SideFiveThreeLowAbs\ to \SideFiveThreeOneAbs\ ALC (Section~\ref{sec:res-side}).
-Our final model, L3, drops the offsets. It lowers ALC by \SideThreeRelHighLo\% to \LadRCOLthreeRelAbs\% on fresh draws of recent subjects and changes little with the side of 50\% (Figure~\ref{fig:testpool}b).
+We then matched the simulator to the hidden test pool.
+The official baseline predicts one constant per group, so its feedback reveals how far each group's accuracy lies from 50\%.
+Test groups lie much farther from 50\% than training groups, and reweighting the simulator to match reproduces the official baseline curve (Figure~\ref{fig:testpool}a).
+Under these weights a wide prior, which allows large benchmark and subject offsets, beats the narrow prior we had chosen (Section~\ref{sec:res-testpool}).
 
-Official runs cannot confirm differences of this size one at a time. Our \OffBetaAllN\ runs of the \BB\ baseline spread by \OffBetaAllRange, and the public leaderboard keeps each team's best run (Section~\ref{sec:res-formative}).
-Our contributions are the following.
+This feedback cannot tell whether a group lies above or below 50\%, but our runs of models with release-date and model-name offsets give a strong hint.
+The offsets raise predictions for recent systems and helped on training data, where most recent systems score above 50\%.
+On the platform every run of these models scored worse before any label than every run of the same model without offsets, \RSideBzeroLfour\ and \RSideBzeroLfive\ against \RSideBzeroLthree\ on average.
+This points to most test groups lying below 50\%, so our final model, L3, has no offsets (Section~\ref{sec:res-side}).
+This report makes three contributions.
 \begin{enumerate}
-\item A measured negative result for frozen-encoder text priors, with two encoders and three training variants on \NBenchKept\ benchmarks (Section~\ref{sec:res-prior}).
-\item A label-sharing adaptation model that carries most of the attainable gain (Sections~\ref{sec:adapt} and~\ref{sec:res-structure}).
-\item A calibration of the simulator to the formative test pool from aggregate feedback, the distance from 50\% from a constant baseline and the side from models that shift their predictions. Each step changed our model choice (Sections~\ref{sec:testpool}, \ref{sec:res-testpool} and~\ref{sec:res-side}).
-\item A repeated-run protocol for formative evaluation with a power calculation and an estimate of the best-of-$N$ bias (Section~\ref{sec:res-formative}).
+\item A measured negative result. A frozen-encoder text prior trained on \NBenchKept\ benchmarks transfers almost nothing to unseen ones (Section~\ref{sec:res-prior}).
+\item A label-sharing model that accounts for most of the improvement (Sections~\ref{sec:method} and~\ref{sec:res-structure}).
+\item A way to calibrate a simulator to a hidden test pool from aggregate feedback, which changed our model choice twice (Sections~\ref{sec:testpool} to~\ref{sec:res-side}).
 \end{enumerate}
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{fig_budget.pdf}
-\caption{\textbf{On the training distribution, sharing labels across subjects and items carries the gain, and the text prior helps only at budget 0.}
-Simulator without test weights, all subjects, \ConfDraws\ fresh draws (\ConfGroups\ groups), narrow level prior.
-(a)~Mean Brier score per budget for \BB\ with a Beta(1,1) prior, the full narrow model (L2c) and L2c with the prior at full weight ($\gamma=1$).
-(b)~Paired difference from Beta(1,1) as each part is added. Bands and bars are 95\% intervals over draws.}
+\caption{\textbf{Label sharing carries the gain. The text prior adds little at the chosen weight and hurts at full weight.}
+(a)~Brier score per budget for the Beta(1,1) baseline, the narrow model L2c with the text prior at weight $\gamma=0.3$, and L2c at full weight $\gamma=1$.
+(b)~Difference from Beta(1,1) as each part is added.
+Simulator on the training distribution, \ConfDraws\ fresh draws, 95\% intervals.}
 \label{fig:budget}
 \end{figure}
 
-\section{Task, score and the structure of official draws}
+\section{Task and official draws}
 \label{sec:task}
-A subject has eight string fields such as model name, harness and reasoning effort. An item has its content, metadata features, interactors and an anonymous benchmark alias.
-A submission's \texttt{predict([subject, item], labeled)} returns a probability, and \texttt{labeled} holds every label revealed so far in the draw, for all groups.
-For group $g$ with Brier score $B_g(k)$ after $k$ revealed labels,
+A subject has eight text fields such as model name, harness and reasoning effort.
+An item has its content, metadata and an anonymous benchmark alias.
+The function \texttt{predict([subject, item], labeled)} returns a probability and sees every label revealed so far in the draw, for all groups.
+With $B_g(k)$ the Brier score of group $g$ after $k$ revealed labels,
 \begin{equation}
 \mathrm{ALC}_g = 0.1\,B_g(0) + 0.2\,\bigl[B_g(1)+B_g(3)+B_g(7)+B_g(15)\bigr] + 0.1\,B_g(31),
 \label{eq:alc}
 \end{equation}
-the normalized trapezoidal area under the Brier curve over $\log_2(1+k)$, and the score is the unweighted mean of $\mathrm{ALC}_g$ over the groups in the draw.
-$B_g(k)$ averages squared errors over all recorded responses of the group's evaluation items.
+and the score of a draw is the mean of $\mathrm{ALC}_g$ over its groups.
 
-Our \OffTables\ formative feedback tables show the draw structure (Appendix~\ref{app:formative}).
-Of these, \OffTablesNine\ contain 9 groups on 7 benchmarks with 2 benchmarks contributing 2 subjects each, and \OffTablesEight\ contain 8 groups on 7 benchmarks.
-The evaluation pool is half of a group's items and holds \OffPairsMin\ to \OffPairsMax\ items in all but \OffPairsLarge\ group evaluations, so most groups have about 88 to 152 items.
-All \OffGroupEvals\ group evaluations came from the same \OffDistinctBench\ benchmark aliases, and the curation guideline states that test subjects are systems from 2025 and 2026~\citep{paiec}.
+All our formative feedback tables share one structure (Appendix~\ref{app:formative}).
+A draw holds 8 or 9 groups on the same seven benchmarks, two of which usually contribute two subjects each, and a group is scored on \OffPairsMin\ to \OffPairsMax\ items in almost every case.
+The curation guideline states that test subjects are recent systems~\citep{paiec}.
 
-Three assumptions link our simulations to this setting.
+Our reference baseline is the Beta-binomial model with a uniform Beta(1,1) prior, which predicts $(k+1)/(m+2)$ for a group with $k$ correct answers among $m$ revealed labels. The official baseline uses a Beta(2,2) prior and is \PRCOBtwoAbs\% worse in the simulator under test weights (Table~\ref{tab:ladder}).
+
+Three assumptions link our simulator to this setting.
 \begin{enumerate}
-\item[A1.] Held-out public benchmarks with recent subjects, reweighted to the test pool's accuracy distribution (Section~\ref{sec:testpool}), stand in for the private benchmarks. If they differ in other ways, simulated gains need not transfer, in either direction.
-\item[A2.] Two subjects drawn on one benchmark share most of their items, because the platform takes whole groups. The feedback reports only counts, so we cannot verify this. Without it, the same-item shift does nothing.
-\item[A3.] A revealed label is one recorded response of the item. Our simulators draw it as a Bernoulli variable with the item's empirical success rate, which has the same distribution.
+\item[A1.] Public benchmarks with recent subjects, reweighted to the test pool (Section~\ref{sec:testpool}), stand in for the private ones. If they differ in other ways, simulated gains may not transfer, in either direction.
+\item[A2.] Two subjects on one benchmark share most of their items. The feedback cannot confirm this. If it fails, the same-item shift does nothing.
+\item[A3.] A revealed label is one recorded response, so we simulate it as a Bernoulli draw with the item's success rate.
 \end{enumerate}
 
 \section{Data}
 \label{sec:data}
-All training data come from the measurement-db dataset at revision \texttt{54074453}~\citep{mdb}, which is part of the competition's permitted inventory.
-Of its \NBenchAll\ benchmarks, \NBenchBinary\ have binary responses.
-We did not download \NBenchNotFetched\ of them (\SkippedFetch), which have one to three subjects each and include two with more than 500,000 items, and \NBenchNoBinary\ more had no binary rows.
-The remaining \NBenchKept\ benchmarks form the corpus (Table~\ref{tab:corpus}).
-Each benchmark keeps at most 4,000 items, the ones answered by the most subjects, and we store the number of recorded trials $n$ and successes $k$ of every subject-item pair.
-A subject is the exact tuple of its eight fields, so one base model under another harness is a different subject.
-Subject descriptions are sparse. Of the \NSubjectConfigs\ configurations, \PctName\% have a model name, \PctRelease\% a release date and \PctEffort\% a reasoning effort.
-
-\begin{table}[t]
-\centering
-\caption{\textbf{\VF\ trains on about \TrialRatio\ times more recorded responses than V3.} Groups are subject-benchmark pairs. Accuracies are benchmark-weighted means over groups with at least 80 items.}
-\label{tab:corpus}
-\small
-\begin{tabular}{lrr}
-\toprule
- & V3 training data & \VF\ corpus \\
-\midrule
-Benchmarks & 5 & \NBenchKept \\
-Recorded binary responses & \VthreeResponses & \NTrials \\
-Subject-item pairs and items & & \NPairs\ and \NItems \\
-Subject configurations (with responses) & & \NSubjectConfigs\ (\NSubjectsWithPairs) \\
-Groups with at least 80 items & \VthreeGroups\ (all sizes) & \NGroupsEighty\ on \NBenchGroupsEighty\ benchmarks \\
-Mean group accuracy, all subjects & & \TrainP\ (\TrainAbove\% above 0.5) \\
-Mean group accuracy, released from July 2025 & & \RecentP\ (\RecentAbove\% above 0.5) \\
-\bottomrule
-\end{tabular}
-\end{table}
+All training data come from measurement-db~\citep{mdb}, which is part of the permitted inventory.
+We kept \NBenchKept\ of its benchmarks with binary responses, \TrialRatio\ times more responses than V3 used, and left out four large or single-subject ones (Appendix~\ref{app:data}).
+Subject descriptions are sparse.
+Only \PctName\% of subject configurations name the model, and \PctRelease\% give a release date.
 
 \section{Method}
 \label{sec:method}
-\subsection{Text prior}
-Items and subjects are embedded with the frozen \texttt{intfloat/multilingual-e5-small} encoder~\citep{e5} at revision \texttt{614241f}, with the recipe of V3 (Appendix~\ref{app:hyper}).
-An item text is its metadata line followed by its task, and a subject text lists its fields.
-A prior network gives a base logit $z_{si}$ for subject $s$ and item $i$.
-Two towers, each a two-layer perceptron with 256 Gaussian error linear units, map the subject input (E5 vector and release date) and the item input (E5 vector and text length) to $h_s$ and $h_i$.
-The logit is $z_{si} = a(h_s) + b(h_i) + \langle U h_s, V h_i\rangle/\sqrt{32}$ with linear heads $a$, $b$ and rank-32 projections $U$, $V$.
-Training minimizes the binomial log loss of the counts $(n,k)$ of every pair, with weight $1/(nT_g)$ for a pair in group $g$ with $T_g$ trials.
-Each benchmark gets a free offset during training, and the mean offset is folded into the intercept afterwards.
+\paragraph{Text prior.}
+A two-tower network maps the E5 embeddings of the subject text and the item text to a base logit $z_{si}$ for subject $s$ and item $i$.
+It is trained with a binomial log loss on all recorded responses, with a free offset per benchmark (Appendix~\ref{app:hyper}).
 
-\subsection{Label-sharing adaptation}
+\paragraph{Label sharing.}
 \label{sec:adapt}
-All labels in \texttt{labeled} that carry the target's benchmark alias enter the update, whichever subject they belong to.
-For one benchmark, the logit of subject $s$ on item $i$ is
+Every revealed label with the target's benchmark alias enters the update, whichever subject it belongs to.
+On one benchmark, the logit for subject $s$ and item $i$ is
 \begin{equation}
-\eta_{si} = \gamma z_{si} + o_s + c + d_s + u_i, \qquad c\sim\mathcal N(0,\tau_c^2), \quad d_s\sim\mathcal N(0,\tau_d^2),
+\eta_{si} = \gamma z_{si} + c + d_s + u_i, \qquad c\sim\mathcal N(0,\tau_c^2), \quad d_s\sim\mathcal N(0,\tau_d^2).
 \label{eq:level}
 \end{equation}
-where $\gamma$ scales the text prior and $o_s$ is a fixed subject offset (Section~\ref{sec:datename}).
-The benchmark offset $c$ is shared by all subjects in the draw, $d_s$ is the offset of subject $s$, and $u_i$ is an item shift.
-We fit $c$ and all $d_s$ jointly by Newton's method and take a Laplace approximation, which gives the posterior mean $m_s$ and variance $v_s$ of $c+d_s$.
-A label of another subject moves $c$ and therefore the target's prediction. We call this part with $u_i=0$ the \emph{level model}.
+Here $\gamma$ scales the text prior, $c$ is a benchmark offset shared by every subject in the draw, $d_s$ is the offset of subject $s$, and $u_i$ is an item shift.
+We fit $c$ and all $d_s$ by Newton's method with a Laplace approximation and call this part the \emph{level model}.
+A label of another subject moves $c$, and with it every prediction on the benchmark.
+The item shift $u_i$ moves item $i$ by the residuals of other subjects on the same item, and by the residuals on items whose E5 embeddings are close to it.
+Each shift is one Newton step for an offset shared by the weighted items (Appendix~\ref{app:hyper}).
+The prediction averages over the posterior variance of $c+d_s$~\citep{mackay}.
 
-The item shift uses residuals of the labeled pairs under the level model.
-For labeled pair $j$ with subject $s_j$ and item $i_j$, let $\hat p_j=\sigma(\gamma z_j + o_{s_j} + m_{s_j})$, $r_j = y_j-\hat p_j$ and $w_j=\hat p_j(1-\hat p_j)$.
-For a kernel $K$ with prior variance $\sigma_K^2$,
-\begin{equation}
-u_i = \sum_{K} \frac{\sigma_K^2 \sum_j K(i,i_j)\, r_j}{1+\sigma_K^2\sum_j K(i,i_j)\, w_j},
-\label{eq:shift}
-\end{equation}
-which is one Newton step from zero for an offset shared by the target item and the labeled items, weighted by $K$.
-The same-item kernel $K(i,i')=\mathbf 1[i=i']$ with variance $\sigma_e^2$ transfers labels of the same item from other subjects.
-The similar-item kernel $K(i,i')=\exp\bigl((\cos(e_i,e_{i'})-1)/h\bigr)$ on E5 vectors, with bandwidth $h$ and variance $\sigma_k^2$, transfers labels of near-duplicate items.
-With $\eta^*_{si}=\gamma z_{si}+o_s+m_s+u_i$, the prediction $p_{si}=\sigma\bigl(\eta^*_{si}/\sqrt{1+\pi v_s/8}\bigr)$ integrates the posterior variance with the probit approximation~\citep{mackay}.
-
-\subsection{Release-date and model-name offsets}
+\paragraph{Date and name offsets.}
 \label{sec:datename}
-The fixed offset $o_s$ adds two subject priors fitted on training groups with at least 80 items.
-The date prior is $\DateA + \DateB\,t$, with $t$ the years from 2023-01-01 to the release date clipped to $[-3,4]$, and $\DateAzero$ for an unknown date, fitted by benchmark-weighted least squares to group logit accuracy.
-The name ability of a normalized model name is the mean, over its training groups, of the group logit minus the benchmark's mean logit, shrunk with a pseudo-count of 2 and clipped to $\pm2.5$. It enters with weight 0.8, and the submission holds \NameCount\ names.
-In simulation the name ability comes from the four other benchmark folds only. There, it has a positive within-benchmark Spearman correlation with group accuracy on \NamePos\% of \NameBench\ held-out benchmarks with at least five named groups (median \NameMedian). L4 and L5 use these offsets, and the final model does not (Section~\ref{sec:res-side}).
+L4 adds a fixed subject offset fitted on training groups as a linear function of release date, and L5 also adds an ability per model name.
+Both raise predictions for recent strong systems.
+The final model does not use them (Section~\ref{sec:res-side}).
 
-\subsection{Final submission}
+\paragraph{Final submission.}
 \label{sec:final}
-The final archive, L3, uses $\tau_c=2.5$, $\tau_d=1.0$, $\sigma_e^2=1$, $h=0.03$, $\sigma_k^2=3$ and $\gamma=0.3$, with $o_s=0$.
-It holds the E5 weights, the prior network and the code (\ArchiveFinalMB\ megabytes) and declares no \texttt{models.txt}.
-It runs on CPU with one prediction worker, which the platform restarts at every budget, so the encoder runs again for each budget. A draw of \EncGroupsPerDraw\ groups then takes \EncDrawMinLo\ to \EncDrawMinHi\ minutes on a two-vCPU Colab CPU runtime (Appendix~\ref{app:repro}).
-Caches of embeddings, logits and level fits are keyed by content hashes, so no prediction depends on earlier calls.
-No predictor reads any group identifier.
+The final model, L3, uses a wide level prior ($\tau_c=2.5$ and $\tau_d=1$, against 1.2 and 0.6 in the narrow models), both item shifts and the text prior at $\gamma=0.3$.
+The archive holds E5, the prior network and the code and runs on CPU.
+A draw of 8 groups takes \EncDrawMinLo\ to \EncDrawMinHi\ minutes on two virtual CPUs, and no prediction reads a group identifier.
+Table~\ref{tab:ladder} lists the other models by the parts they add.
 
-\section{Calibrating the simulator to the formative test pool}
+\section{A simulator calibrated to the hidden test pool}
 \label{sec:testpool}
-For a group whose prediction is one constant $q$, the Brier score is $p(1-p)+(q-p)^2$ and the expected calibration error (ECE) is $|q-p|$, where $p$ is the accuracy of the group's evaluation responses.
-The official \BB\ baseline predicts such a constant at every budget, namely 0.5 at budget 0.
-Its feedback therefore gives $|p-0.5|=\mathrm{ECE}_0$ for every group, and $p(1-p)=B_{31}-\mathrm{ECE}_{31}^2$ agrees with it to $10^{-6}$.
+We compare models in a simulator of official draws built from public benchmarks.
+A draw takes two benchmarks with two subjects each and five with one, as official draws do, and the text prior for each benchmark comes from a network trained without it.
+We tuned on development draws and report results on \ConfDraws\ fresh draws per setting (Appendix~\ref{app:sim}).
 
-Three baseline runs give \TpGroups\ group evaluations.
-Their mean $p(1-p)$ is \TpPq, against \TrainPq\ for training groups, and the shares of $|p-0.5|$ in the bins $[0,0.1)$, $[0.1,0.2)$, $[0.2,0.3)$, $[0.3,0.4)$ and $[0.4,0.5]$ are \TpShareOwn.
-So \TpFarShare\% of test groups have accuracy below 0.2 or above 0.8.
-The side of 0.5 is not identified, because flipping every label maps $p$ to $1-p$ and $q$ to $1-q$ and leaves both scores unchanged. Section~\ref{sec:res-side} recovers it from models that shift their predictions.
+At first the simulator was far off.
+It gave the official baseline, a Beta-binomial model with a Beta(2,2) prior, an ALC of \RSimBtwoACU, while its \OffBetaAllN\ official runs averaged \ROffBetaAllMean.
 
-\emph{Test weights} reweight simulated groups so that their $|p-0.5|$ bins match these shares. The tuning grids used an earlier estimate (\TpShareSim) that placed one group in a different bin, and all confirmation runs use the shares above.
-With test weights the simulated official baseline, Beta(2,2), scores \SimBtwoACO\ on all subjects and \SimBtwoRCO\ on recent subjects, against \SimBtwoACU\ and \SimBtwoRCU\ without them.
-The three official runs average \OffBetaMean\ (standard error \OffBetaSe), and the calibrated curve follows the official one at every budget (Figure~\ref{fig:testpool}a).
-Later runs, made after the model choice and not used for the weights, scored \OffBetaLaterRuns, and all \OffBetaAllN\ runs average \OffBetaAllMean\ (standard error \OffBetaAllSe).
-The matching curve is a consistency check, not a test of the model ranking, because once the shares of $|p-0.5|$ match it follows mostly from group sizes and the split.
-Official runs of V2 (mean \OffVtwoMean, \OffVtwoN\ runs) and V3 (\OffVthreeMean, \OffVthreeN) lie within one standard error of the Beta(2,2) mean, as the replay predicts (Section~\ref{sec:res-testpool}).
-Only such aggregate statistics and the per-archive scores of Section~\ref{sec:res-side} enter model selection.
+The official feedback explains the gap.
+The baseline predicts one constant $q$ per group, and for a constant the expected calibration error equals $|q-p|$, where $p$ is the group's accuracy.
+Before any label the baseline predicts $q=0.5$, so its feedback lists $|p-0.5|$ for every group.
+In the baseline runs available when we chose the model, \TpFarShare\% of test groups had accuracy below 20\% or above 80\%, against \ShortTrainFar\% of simulated groups of recent systems.
 
-\section{Evaluation protocols}
-\label{sec:protocols}
-\paragraph{Baseline.}
-The \BB\ baseline predicts $(k+a)/(m+2a)$ for every evaluation item of a group with $m$ revealed labels and $k$ successes. Simulations use $a=1$ and the official archive uses $a=2$, which is worse by \ConfBetaTwoAbs\ ALC in simulation (standard error \ConfBetaTwoSe).
-
-\paragraph{Leave-benchmark-out simulation.}
-We split the \NBenchKept\ benchmarks into \LoboFolds\ random folds, train the prior on four and simulate on groups of the fifth with at least 80 items, subsampled to 80 to 160 items. Draws of the level model collect groups up to 1,000 items, 60 per fold, from \LoboGroups\ held-out groups.
-
-\paragraph{Official-structure simulator.}
-A draw picks 2 benchmarks whose two sampled subjects share 88 to 152 items and 5 benchmarks with one subject, and drops groups beyond 1,000 items, so most draws hold 8 groups. Each group is split in half independently.
-Base logits come from the prior trained without the pair's benchmark fold.
-Options restrict subjects to those released from 2025 (\LadRDBench\ benchmarks) and apply test weights.
-Seeds 0 to 599 serve development, and 600 seeds from 100,000, 200,000 and 300,000 serve one confirmation run each. Standard errors treat the draw as the unit.
-
-\paragraph{Runtime replays.}
-We ran the real V2 and V3 submission code on the simulator's draws (recent subjects, seeds from 0) and paired each group with the simulator's L3, L5 and \BB\ rows. These draws exclude the nine benchmarks that V2 or V3 trained or tuned on.
-
-\paragraph{Formative runs.}
-Each Codabench submission is scored on a new random draw. We resubmit an uploaded archive several times and report the mean and standard error across runs.
+\emph{Test weights} reweight simulated groups so that their distribution of $|p-0.5|$ matches the test pool.
+With them the simulated baseline scores \RSimBtwoACO, and its curve follows the official one at every budget (Figure~\ref{fig:testpool}a).
+This match is a weak check on its own, because once the distribution matches, the curve follows mostly from group sizes.
+The side of 50\% stays hidden, since flipping every label leaves both scores unchanged.
+Section~\ref{sec:res-side} recovers it.
 
 \section{Results}
 \label{sec:results}
 
-\subsection{The text prior transfers almost nothing to held-out benchmarks}
+\subsection{The text prior transfers almost nothing to unseen benchmarks}
 \label{sec:res-prior}
-In all three training variants the best prior weight was $\gamma=0.3$, the smallest value in the grid, and ALC fell steadily as $\gamma$ shrank (Table~\ref{tab:lobo} in Appendix~\ref{app:extra}).
-Variant B, with free benchmark offsets during training, reached \LoboB\ against \LoboBeta\ for \BB, a difference of \LoboBRel\%.
-On a subset of at most 600 items per benchmark, Qwen3-Embedding-0.6B~\citep{qwen3emb} gave \BakeQwen\ against \BakeEfive\ for E5 and \BakeBeta\ for \BB. One set of draws per run gives no standard error, so we read the gap between encoders as no evidence either way.
-The prior moves mainly budget 0. At $\gamma=0.3$ it lowered the simulated budget-0 Brier score from 0.25 to \ConfFullBzero, and at full weight it raised it to \ConfGammaOneBzero\ (Figure~\ref{fig:budget}a). V2's official runs averaged \OffVtwoBzeroMean.
-A zero-shot LLM judge did no better. Difficulty ratings by Qwen3-8B~\citep{qwen3} improved simulated ALC by only \JudgeSimGain\ and hurt budget 0, so the judge is not used (Appendix~\ref{app:judge}).
+In three training variants the best weight of the text prior was the smallest we tried, and ALC improved as the weight shrank (Table~\ref{tab:lobo} in Appendix~\ref{app:extra}).
+The best variant beat the label-only baseline by \ShortLoboRel\%.
+The prior mainly acts before the first label, and even there it barely helps.
+At the chosen weight it lowers the Brier score before any label from 0.250 to \RConfFullBzero, and at full weight it raises it to \RConfGammaOneBzero\ (Figure~\ref{fig:budget}a).
+On the platform, the final model's own score before any label is \RSideBzeroLthree, again no better than a constant.
+A second encoder, Qwen3-Embedding-0.6B~\citep{qwen3emb}, gave a similarly small gain on a subset, from one set of draws without a standard error, and difficulty ratings from Qwen3-8B~\citep{qwen3} did no better (Appendices~\ref{app:extra} and~\ref{app:judge}).
 
-
-\subsection{On the training distribution, shared label evidence carries the gain}
+\subsection{On the training distribution, shared labels carry the gain}
 \label{sec:res-structure}
-Without test weights, the narrow model ($\tau_c=1.2$, $\tau_d=0.6$, $\sigma_e^2=2$) lowered ALC from \ConfBeta\ for \BB\ to \ConfFullAlc.
-This paired difference of \ConfFull\ (standard error \ConfFullSe) comes from \ConfDraws\ fresh draws of all subjects.
-Without its text prior it reached \ConfKernel, which is \ConfShareStructure\% of the gain.
-Each level of sharing helps at a different budget (Figure~\ref{fig:budget}b).
-The benchmark offset helps most at 1 to 3 labels, when the target subject has few labels but the other subject on the benchmark adds more. The same-item shift grows with the budget, and the similar-item shift doubles the gain at 31 labels.
+On the training distribution the narrow model lowers ALC by \ShortConfRel\% against the baseline, and \ConfShareStructure\% of this remains without the text prior (Figure~\ref{fig:budget}b).
+Each kind of sharing helps at a different budget.
+The benchmark offset helps most at 1 to 3 labels, when other subjects on the benchmark add labels that the target lacks.
+The same-item shift grows with the budget, and the similar-item shift doubles the gain at 31 labels.
 
-\subsection{On the test pool, prior width matters}
+\subsection{On the test pool, a wide prior wins}
 \label{sec:res-testpool}
-Test weights change the ranking of models (Table~\ref{tab:ladder}).
-Without them the narrow model L2c is best in both subject populations, ahead of L3 by \PairAFLthreeLtwocUAbs\ on all subjects. With them L3 beats L2c by \PairAFLthreeLtwocTAbs\ on all subjects and \PairRFLthreeLtwocTAbs\ on recent ones (standard errors \PairAFLthreeLtwocTSe).
-Since only the weighted simulator reproduces the official baseline level, we read the unweighted ranking as a description of the training distribution, not of the test pool.
-The narrow level model with the same-item shift (L1c) is no better than \BB\ under test weights (\LadACOLonec\ on all subjects), although it gains \LadACULonecAbs\ without them. Extreme groups need large offsets, and a narrow prior holds their predictions too close to the starting value at low budgets.
+Test weights reorder the models (Table~\ref{tab:ladder}).
+On recent subjects without test weights the narrow model L2c is best.
+With test weights the wide models lead, and L3 gains \PRCOLthreeAbs\% against \PRCOLtwocAbs\% for L2c. L4 and L5 gain more only while groups keep the training side of 50\%. With \ShortPiGrid\% of groups below 50\%, the smallest share allowed by the official gap between L4 and L3, L3 keeps \PRCSLthreeAbs\% and L5 falls to \PRCSLfiveAbs\% (third column, Section~\ref{sec:res-side}).
+Extreme groups need large offsets, and a narrow prior keeps their predictions near the starting value while labels are few.
 
-On recent subjects with test weights, the wide model with item shifts and the E5 prior (L3) reaches \LadRCOLthree, or \LadRCOLthreeRel\%, and its text prior contributes \PairRFTextThreeTAbs\ (standard error \PairRFTextThreeTSe).
-The date and name offsets lower ALC by a further \PairRFDateNameTAbs\ (standard error \PairRFDateNameTSe) to \LadRCOLfive\ for L5, but only while the share of test groups below 50\% stays under \SideBreakeven\ (Section~\ref{sec:res-side}).
+Two checks show that L3 gains more than a prior that suits extreme groups.
+The best Beta prior we tried for this pool, Beta(0.5,0.5), gains only \ShortBhalf\%.
+Restricted to the labels of its own group, L3 keeps about half of its gain (\PRCOLthreeownAbs\% against \PRCOLthreeAbs\%).
 
-Two checks show that the gain on the test pool is not only a prior that suits extreme groups.
-First, the best Beta prior for this pool among those we tried, Beta(0.5,0.5), improves on Beta(1,1) by only \LadRCOBhalfAbs\ under test weights on recent subjects, and L3 beats it by \PairRCBhalfThreeOAbs\ (standard error \PairRCBhalfThreeOSe).
-The official Beta(2,2) prior is worse than Beta(1,1) by \LadRCOBtwoAbs.
-Second, L3 restricted to the labels of the target group loses \PairRCShareThreeOAbs\ (standard error \PairRCShareThreeOSe) of its \LadRCOLthreeAbs\ gain, because it no longer shares the benchmark offset or same items across subjects.
-In the wide level model, sharing only the benchmark offset is worth \PairRCLevelShareOAbs\ (standard error \PairRCLevelShareOSe) and needs no shared items (A2), and the same-item step adds \PairRCExactStepOAbs.
+The text prior adds \ShortTextThree\% at the training side of 50\% and nothing at \ShortPiGrid\% below, where the model without it scores \PRCSWkernel\%.
+Under test weights the real V2 and V3 code trails L3 by \ShortRepTwo\% on simulated draws, while without them it matches L3 (Appendix~\ref{app:extra}).
 
 \begin{table}[t]
 \centering
-\caption{\textbf{Under test weights the wide models win, while without them the narrow model is best.} Official-structure simulator, the same 600 confirmation draws (seeds from 300,000) in each population. First row is the Beta(1,1) ALC, other rows are differences from it, lower is better. Groups keep the training side of 50\%, and Figure~\ref{fig:testpool}b shows that the order of L3, L5 and L6 reverses when most lie below it. Rows with own labels only use the labels of the target group and share nothing across subjects. Standard errors are 0.0001 to 0.0003 per cell and near 0.0001 for paired differences between rows.}
+\caption{\textbf{Test weights favor wide priors, and once most groups lie below 50\%, the date and name offsets hurt.} Change in ALC against the Beta(1,1) baseline in percent, lower is better. Simulator, subjects released from 2025, 600 fresh draws. The first row gives the baseline ALC. The first two columns keep the training share of groups below 50\% (\ShortTrainBelow\%), and the third sets it to \ShortPiGrid\%, the smallest share allowed by the official gap between L4 and L3 (Section~\ref{sec:res-side}). Standard errors are at most \PRCSSeMax\ points. Appendix~\ref{app:sim} adds all subjects.}
 \label{tab:ladder}
 \small
-\begin{tabular}{lrrrr}
+\begin{tabular}{lrrr}
 \toprule
-Subjects & all & all & recent & recent \\
-Test weights & no & yes & no & yes \\
+ & & \multicolumn{2}{c}{Test weights} \\
+\cmidrule(lr){3-4}
+Model & Training weights & training side & \ShortPiGrid\% below 50\% \\
 \midrule
-\BB\ ALC & \LadACUBeta & \LadACOBeta & \LadRCUBeta & \LadRCOBeta \\
-\BB, Beta(0.5,0.5) & \LadACUBhalf & \LadACOBhalf & \LadRCUBhalf & \LadRCOBhalf \\
-\BB, Beta(2,2), official prior & \LadACUBtwo & \LadACOBtwo & \LadRCUBtwo & \LadRCOBtwo \\
-L1c, narrow level + same item & \LadACULonec & \LadACOLonec & \LadRCULonec & \LadRCOLonec \\
-L2c, narrow, all sharing + E5 prior & \LadACULtwoc & \LadACOLtwoc & \LadRCULtwoc & \LadRCOLtwoc \\
-Wide level model & \LadACUWlevel & \LadACOWlevel & \LadRCUWlevel & \LadRCOWlevel \\
-\quad + same item & \LadACUWexact & \LadACOWexact & \LadRCUWexact & \LadRCOWexact \\
-\quad + similar items & \LadACUWkernel & \LadACOWkernel & \LadRCUWkernel & \LadRCOWkernel \\
-\quad + E5 prior, $\gamma=0.3$ (L3, final) & \LadACULthree & \LadACOLthree & \LadRCULthree & \LadRCOLthree \\
-\quad + date prior (L4) & \LadACULfour & \LadACOLfour & \LadRCULfour & \LadRCOLfour \\
-\quad + name ability (L5) & \LadACULfive & \LadACOLfive & \LadRCULfive & \LadRCOLfive \\
-L5 without the E5 prior & \LadACULfivent & \LadACOLfivent & \LadRCULfivent & \LadRCOLfivent \\
-Wide level model, own labels only & \LadACUWown & \LadACOWown & \LadRCUWown & \LadRCOWown \\
-L3, own labels only & \LadACULthreeown & \LadACOLthreeown & \LadRCULthreeown & \LadRCOLthreeown \\
-L6, best of a grid on recent dev draws & \LadACULsix & \LadACOLsix & \LadRCULsix & \LadRCOLsix \\
+Beta(1,1) baseline, ALC & \PRCUBeta & \PRCOBeta & \PRCSBeta \\
+Beta(0.5,0.5) & \PRCUBhalf & \PRCOBhalf & \PRCSBhalf \\
+Beta(2,2), the official baseline & \PRCUBtwo & \PRCOBtwo & \PRCSBtwo \\
+L1c, narrow level model and same item & \PRCULonec & \PRCOLonec & \PRCSLonec \\
+L2c, narrow, all sharing and text prior & \PRCULtwoc & \PRCOLtwoc & \PRCSLtwoc \\
+Wide level model & \PRCUWlevel & \PRCOWlevel & \PRCSWlevel \\
+\quad + same item & \PRCUWexact & \PRCOWexact & \PRCSWexact \\
+\quad + similar items & \PRCUWkernel & \PRCOWkernel & \PRCSWkernel \\
+\quad + text prior, $\gamma=0.3$ (L3, final) & \PRCULthree & \PRCOLthree & \PRCSLthree \\
+\quad + date offset (L4) & \PRCULfour & \PRCOLfour & \PRCSLfour \\
+\quad + name ability (L5) & \PRCULfive & \PRCOLfive & \PRCSLfive \\
+L3 with its own group's labels only & \PRCULthreeown & \PRCOLthreeown & \PRCSLthreeown \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -290,81 +226,89 @@ L6, best of a grid on recent dev draws & \LadACULsix & \LadACOLsix & \LadRCULsix
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{fig_testpool.pdf}
-\caption{\textbf{Reweighting simulated groups to the test pool reproduces the official baseline curve, and the side of 50\% decides whether date and name offsets help.}
-(a)~Brier score per budget of the Beta(2,2) baseline in the three official runs that set the weights (grey, mean in black), in later runs (dotted) and in the simulator with and without test weights (all subjects, \LadACDraws\ confirmation draws).
-(b)~Paired ALC difference from Beta(1,1) under test weights, recent subjects, \LadRCDraws\ confirmation draws, as the share of groups below 0.5 varies within each $|p-0.5|$ bin. Dotted line, training share. Shaded, shares allowed by the official budget-0 scores of L3 and L4. Standard errors are at most \SidePlotSe.}
+\caption{\textbf{Test weights reproduce the official baseline curve, and the side of 50\% decides whether date and name offsets help.}
+(a)~Brier score per budget of the Beta(2,2) baseline in official runs and in the simulator.
+(b)~ALC change against Beta(1,1) under test weights, recent subjects, as the share of groups below 50\% accuracy varies. L6 has larger offsets tuned on development draws (Appendix~\ref{app:sim}).
+Dotted line, training share. Shaded, shares allowed by the official gap between L4 and L3 (one-sided 95\% bound).}
 \label{fig:testpool}
 \end{figure}
 
-Replays of the real V2 and V3 code agree. Under test weights L3 beat them by \RepTwoTDiffThreeAbs\ and \RepThreeTDiffThreeAbs\ (standard errors \RepTwoTDiffThreeSe\ and \RepThreeTDiffThreeSe), and without weights the differences were \RepTwoUDiffThree\ and \RepThreeUDiffThree\ (Appendix~\ref{app:extra}).
-
-\subsection{Official runs reveal the side of 50\%, which reverses the effect of the date and name offsets}
+\subsection{Official runs point to most test groups lying below 50\%, so the final model drops the offsets}
 \label{sec:res-side}
-Moving a group's constant prediction from 0.5 to $0.5+s$ changes its Brier score by $s\,(s-2(p-0.5))$, so an upward shift raises the score unless $p>0.5+s/2$.
-The date and name offsets raise predictions for recent subjects, and test subjects are 2025 and 2026 releases.
-On the platform the offsets raised the budget-0 Brier score from \SideBzeroLthree\ for L3 (standard error \SideBzeroLthreeSe, \SideBzeroLthreeGroups\ group evaluations) to \SideBzeroLfour\ for L4 (\SideBzeroLfourSe) and \SideBzeroLfive\ for L5 (\SideBzeroLfiveSe), and \SideRunsAbove\ (Table~\ref{tab:formative}).
-This is consistent with most test groups lying below 50\% accuracy, while \SideTrainAbovePct\% of training groups of systems released from 2025 lie above it.
+Raising a group's constant prediction from 0.5 to $0.5+s$ changes its Brier score by $s\,(s-2(p-0.5))$, where $p$ is the group's accuracy.
+The score rises unless $p>0.5+s/2$.
+The date and name offsets raise predictions for recent systems, and the curation guideline says test subjects are recent.
 
-To size the effect we reweight simulated groups within each $|p-0.5|$ bin so that a share $\pi$ lies below 0.5.
-At the training share of \SideTrainShare\ the simulated budget-0 gap between L4 and L3 is \SideGapLfourSimTrain, and even at $\pi=1$ it reaches only \SideGapLfourSimMax, below the official \SideGapLfour\ (standard error \SideGapLfourSe). The one-sided lower 95\% bound of the official gap needs $\pi\ge\SidePiLow$ (two-sided, \SidePiLowTwo).
-No single share fits all three archives. The official L4 and L5 scores alone \SidePiFromPhrase, and the L4 score alone needs $\pi\ge\SidePiFromLfourLow$, but the simulated L3 rises to \SideLthreeSimAtLow\ at $\pi=\SidePiLow$ against its official \SideBzeroLthree, which alone points to \SidePiFromLthree. The gap between L4 and L3 removes the part they share, the text prior, so we use it.
-L5 beats L3 only for $\pi<\SideBreakeven$ (Figure~\ref{fig:testpool}b). L3 is better by \SideFiveThreeLowAbs\ at $\pi=\SidePiLow$ and by \SideFiveThreeOneAbs\ at $\pi=1$ (standard errors about 0.0001), and the tuned L6, with larger offsets, falls behind \BB\ for $\pi>\SideLsixCross$.
-The difference of L3 from Beta(1,1) stays between \SideThreeLo\ and \SideThreeHi\ over the whole range, and its official budget-0 score is below 0.25. On all subjects L5 and L3 differ by at most \SideAllLoAbs, because older subjects get small offsets.
-Official mean ALC cannot decide it. L3 averages \OffLthreeMean, L4 \OffLfourMean\ and L5 \OffLfiveMean, but L3 is also behind Beta(2,2) at \OffBetaAllMean\ and V2 at \OffVtwoMean, all within the run-to-run standard deviation of \OffBetaAllSd.
+On the platform the offsets raised the Brier score before any label from \RSideBzeroLthree\ for L3 to \RSideBzeroLfour\ for L4 and \RSideBzeroLfive\ for L5. Before any label, every run of L4 and L5 scored worse than every run of L3 (Table~\ref{tab:allruns} in Appendix~\ref{app:formative}).
+In training data the offsets help, because \SideTrainAbovePct\% of groups of systems released from 2025 lie above 50\%.
+
+To size the effect we vary the share of simulated groups below 50\% (Figure~\ref{fig:testpool}b).
+Even the one-sided 95\% lower bound of the official gap between L4 and L3 needs \ShortPiLow\% of groups below 50\%.
+L5 beats L3 only when fewer than \ShortBreakeven\% lie below.
+At \ShortPiLow\% and above, L5 loses most of its gain while L3 keeps about 3\%.
 We therefore submit L3.
+No single share fits all three archives exactly, and Appendix~\ref{app:sim} shows the mismatch.
+Official mean ALC cannot settle the choice. L3 averages \ROffLthreeMean, ahead of L5 but behind the mean of all \OffBetaAllN\ baseline runs (\ROffBetaAllMean) and V2 (\ROffVtwoMean), and all these means lie within the spread of one run (Table~\ref{tab:formative}).
 
 \subsection{Single formative runs cannot rank these methods}
 \label{sec:res-formative}
-All \OffBetaAllN\ runs of the Beta(2,2) baseline archive have a standard deviation of \OffBetaAllSd\ (Table~\ref{tab:formative}), and two other teams report 0.016 over 20 runs~\citep{veseluhha} and 0.024 over 4 runs~\citep{shashwat}.
-Every run gets its own draw, so detecting a difference of \ConfFullAbs\ with a two-sided 5\% test and 80\% power needs about \RunsNeededOurs\ runs per archive, against \RunsNeededPaired\ paired simulated draws.
-The leaderboard keeps each team's best run, which for 20 runs lies about \BestOfTwentyShift\ below the mean (one team reports a 20-run mean of 0.1765 and a leaderboard entry of 0.139~\citep{veseluhha}), while the final evaluation scores each team once on a common set.
+The \OffBetaAllN\ official runs of the baseline have a standard deviation of \ROffBetaAllSd\ (Appendix~\ref{app:formative}), and two other teams report similar spreads~\citep{veseluhha,shashwat}.
+Each run gets its own draw. Detecting a difference of \QConfFullAbs\ ALC, the size of the label-sharing gain, takes about \RunsNeededOurs\ runs per archive (two-sided 5\% test, 80\% power), against \RunsNeededPaired\ paired draws in the simulator.
+The leaderboard keeps each team's best run, which for 20 runs lies about \BestOfTwentyShift\ below the mean, while the final evaluation scores each team once on a common set.
 
 \begin{table}[t]
 \centering
-\caption{\textbf{Formative scores are single draws or small samples, but budget-0 scores separate the archives with date and name offsets.} Official Brier ALC per run, lower is better, each on its own draw of 8 or 9 groups, and the mean budget-0 Brier score $B(0)$. Weight runs set the test weights. L1c and L2c pool builds of one model for the CPU and GPU images.}
+\caption{\textbf{Before any label, every L4 and L5 run is worse than every L3 run, while mean ALC does not separate the models.} Official runs, each on its own draw of 8 or 9 groups. $B(0)$ is the mean Brier score before any label. Weight runs set the test weights. L1c and L2c pool builds for the CPU and GPU images. Appendix~\ref{app:formative} lists every run.}
 \label{tab:formative}
-\footnotesize
-\setlength{\tabcolsep}{3pt}
-\begin{tabular}{lcp{6.15cm}lc}
+\small
+\begin{tabular}{lrcc}
 \toprule
-Archive & Runs & ALC per run & Mean (s.e.) & $B(0)$ \\
+Archive & Runs & ALC, mean (s.e.) & $B(0)$ \\
 \midrule
-Beta(2,2), weight runs & \OffBetaN & \OffBetaRuns & \OffBetaMean\ (\OffBetaSe) & 0.250 \\
-\TabBetaLaterRow
-V2 & \TabVtwoRuns & \TabVtwoAlc & \TabVtwoMean & \TabVtwoBzero \\
-V3 & \TabVthreeRuns & \TabVthreeAlc & \TabVthreeMean & \TabVthreeBzero \\
-L1c & \TabLonecRuns & \TabLonecAlc & \TabLonecMean & \TabLonecBzero \\
-L2c & \TabLtwoRuns & \TabLtwoAlc & \TabLtwoMean & \TabLtwoBzero \\
-L3, final & \TabLthreeRuns & \TabLthreeAlc & \TabLthreeMean & \TabLthreeBzero \\
-L4 & \TabLfourRuns & \TabLfourAlc & \TabLfourMean & \TabLfourBzero \\
-L5 & \TabLfiveRuns & \TabLfiveAlc & \TabLfiveMean & \TabLfiveBzero \\
+Beta(2,2), weight runs & \OffBetaN & \TabBetaMeanR & 0.250 \\
+Beta(2,2), later runs & \OffBetaLaterN & \TabBetaLaterMeanR & 0.250 \\
+V2 & \TabVtwoRuns & \TabVtwoMeanR & \TabVtwoBzero \\
+V3 & \TabVthreeRuns & \TabVthreeMeanR & \TabVthreeBzero \\
+L1c & \TabLonecRuns & \TabLonecMeanR & \TabLonecBzero \\
+L2c & \TabLtwoRuns & \TabLtwoMeanR & \TabLtwoBzero \\
+L3, final & \TabLthreeRuns & \TabLthreeMeanR & \TabLthreeBzero \\
+L4 & \TabLfourRuns & \TabLfourMeanR & \TabLfourBzero \\
+L5 & \TabLfiveRuns & \TabLfiveMeanR & \TabLfiveBzero \\
 \bottomrule
 \end{tabular}
 \end{table}
-
 
 \section{Related work}
 \label{sec:related}
 Item response theory models success through subject ability and item difficulty~\citep{lord1980,rodriguez2021}, and tinyBenchmarks estimates a benchmark score from a few items with item parameters fitted on that benchmark~\citep{polo2024}, which a cold start lacks.
 Observational scaling laws predict scores from capabilities on known benchmarks~\citep{ruan2024}, not item by item on unseen ones.
-Text-based difficulty estimation works within a domain~\citep{benedetto2023}, and amortized calibration predicts IRT difficulty from question content~\citep{truong2025}, the role of our text prior.
-Assessors predict a system's success on an instance~\citep{hernandez2022}, and a generic assessor does so for a new model tested on about 100 reference instances~\citep{pacchiardi2024}, while PAIEC gives at most 31 labels, all from the new benchmark.
+Text-based difficulty estimation works within a domain~\citep{benedetto2023}, and amortized calibration predicts item difficulty from question content~\citep{truong2025}, the role of our text prior.
+Assessors predict a system's success on an instance~\citep{hernandez2022}, and a generic assessor does so for a new model from about 100 reference instances~\citep{pacchiardi2024}. PAIEC gives at most 31 labels, all from the new benchmark.
 The level model is a random-intercept logistic model~\citep{efron1975,gelman2007}.
 
 \section{Limitations}
 \label{sec:limits}
-The main limit is the test-pool calibration. It rests on \TpGroups\ group evaluations of three Beta runs and on the budget-0 scores of \SideRunsPhrase, all on the same \OffDistinctBench\ benchmark aliases, and model selection used it, so the formative pool is not untouched for our choice. The final evaluation draws a common subset from the same hidden data~\citep{paiec} but may weigh benchmarks differently.
-Resampling the bins of the \TpGroups\ evaluations (\BootReps\ replicates) keeps L3 ahead of \BB\ in every replicate and ahead of the narrow L2c in \BootRCLthreeLtwocP\%, but ignores groups that recur across runs. Under the shares of the \TpLaterGroups\ less extreme evaluations of later Beta runs, the gaps of L3 to Beta(1,1) and to L2c are \ShLaterRCLthreeBeta\ and \ShLaterRCLthreeLtwoc.
-If the final pool resembled training data, L2c would score about \PairAFLthreeLtwocUAbs\ better than L3 (Table~\ref{tab:ladder}), and at the training side of 50\% L5 would score about \SideFiveThreeTrainAbs\ better.
-The same-item shift relies on assumption A2 and is worth up to \PairRCExactStepOAbs\ under test weights. Confirmation draws correct for tuning but not for earlier design choices such as the simulator (Appendix~\ref{app:repro}).
+The test-pool calibration rests on little data, the feedback of three baseline runs and of the L3, L4 and L5 runs in Table~\ref{tab:formative}, all on the same seven benchmarks.
+Model selection used it, so our formative runs are not an independent test.
+Resampling the bins of the test groups (\BootReps\ replicates) keeps L3 ahead of the baseline in every replicate and ahead of L2c in \BootRCLthreeLtwocP\%, but ignores groups that recur across runs.
+The final evaluation draws from the same hidden data~\citep{paiec}, but if it weighs benchmarks differently the gain of L3 may shrink.
+
+Under the less extreme groups of the later baseline runs, L3 loses its lead over L2c (Appendix~\ref{app:sim}).
+If the final pool resembled the training data, L2c would beat L3 by about \ShortTwocThreeAllU\%, and if test groups kept the training side of 50\%, L5 would beat L3 by \ShortFiveThreeTrain\%.
+The same-item shift relies on assumption A2 but adds only \ShortExactStep\%.
+Fresh draws correct for tuning, not for earlier design choices such as the simulator itself.
 
 \section{Conclusion}
 \label{sec:conclusion}
-A frozen-encoder prior trained on \NBenchKept\ benchmarks changed ALC by \LoboBRelAbs\% in leave-benchmark-out simulation, while sharing labels across subjects and items carried most of the gain, also against a Beta prior tuned to the test pool.
-Aggregate feedback calibrated our simulator to the test pool twice, with each group's distance from 50\% accuracy from a constant baseline and its side from models that shift their predictions, and each step changed which model we submit.
+In this cold-start task, labels of other systems on the same benchmark were worth more than a frozen-encoder text prior trained on many benchmarks.
+Aggregate feedback from a constant baseline told us how extreme the hidden test groups are, and runs of models with shifted predictions pointed to the side of 50\% on which most of them lie. Each finding changed our final model.
+Because single runs are this noisy, formative submissions are best compared over repeated runs.
 
-\section*{Development assistance}
-An LLM-based coding assistant was used, under the author's direction, to write and debug code, run and monitor experiments, and draft and edit this report. Our results in the tables, figures and text are generated by the released scripts from saved outputs.
+\section*{LLM usage statement}
+The author directed the work.
+An LLM-based coding assistant wrote and debugged most of the code, ran and monitored the experiments, and drafted and edited the text.
+Every result in the tables, figures and text is printed by a script from saved outputs (Appendix~\ref{app:repro}), and the numbers were checked against those outputs before submission.
+
 
 \begingroup
 \small
@@ -396,9 +340,9 @@ An LLM-based coding assistant was used, under the author's direction, to write a
 \appendix
 \section{Reproduction}
 \label{app:repro}
-Paths are relative to the root of the code repository \url{https://github.com/123yaroslav/paiec2026}, which also holds the sources and data of this report. All CPU steps, the simulator and the runtime tests ran on the Mac with Python 3.12.12, torch 2.14.1, transformers 5.19.0, numpy 2.5.3, pandas 3.0.6, pyarrow 25.0.1 and huggingface\_hub 1.33.0. GPU steps ran on Google Colab L4 runtimes with their preinstalled torch and transformers, driven by the colab command-line tool 0.7.4. Two mismatches remain between training and runtime. The prior's training weights give groups with repeated trials less weight than the score does, and training embeddings were stored in float16 while the runtime uses float32. The corpus omits \NBenchNotFetched\ large or single-subject benchmarks and keeps the most-answered items of large benchmarks (Section~\ref{sec:data}). Because in-memory caches last one budget, L3 and L5 encode \EncPerBudgetLo\ to \EncPerBudgetHi\ texts per budget of a draw. On a two-vCPU Colab CPU runtime with one torch thread this costs \EncTextSec\ seconds per text and \EncLoadSec\ seconds per model load, so a run reaches the 8-hour limit only at about \EncMaxGroups\ groups, against 8 or 9 in a formative run. \TODO{Add the public repository link.}
+Paths are relative to the root of the code repository \url{https://github.com/123yaroslav/paiec2026}, which also holds the sources and data of this report. All CPU steps, the simulator and the runtime tests ran on the Mac with Python 3.12.12, torch 2.14.1, transformers 5.19.0, numpy 2.5.3, pandas 3.0.6, pyarrow 25.0.1 and huggingface\_hub 1.33.0. GPU steps ran on Google Colab L4 runtimes with their preinstalled torch and transformers, driven by the colab command-line tool 0.7.4. Two mismatches remain between training and runtime. The prior's training weights give groups with repeated trials less weight than the score does, and training embeddings were stored in float16 while the runtime uses float32. The corpus omits \NBenchNotFetched\ large or single-subject benchmarks and keeps the most-answered items of large benchmarks (Appendix~\ref{app:data}). Because in-memory caches last one budget, L3 and L5 encode \EncPerBudgetLo\ to \EncPerBudgetHi\ texts per budget of a draw. On a two-vCPU Colab CPU runtime with one torch thread this costs \EncTextSec\ seconds per text and \EncLoadSec\ seconds per model load, so a run reaches the 8-hour limit only at about \EncMaxGroups\ groups, against 8 or 9 in a formative run.
 
-\paragraph{1. Download and build the corpus (local CPU).} The download fetches benchmark tables at the pinned revision and skips the four benchmarks listed in Section~\ref{sec:data}.
+\paragraph{1. Download and build the corpus (local CPU).} The download fetches benchmark tables at the pinned revision and skips the four benchmarks listed in Appendix~\ref{app:data}.
 \begin{lstlisting}
 python - <<'EOF'
 import json
@@ -423,7 +367,7 @@ cd /content/run4 && RUNTIME_DIR=/content/run python export_z.py --tag B   # need
 \end{lstlisting}
 The last command writes \texttt{pairs\_z.parquet} with held-out logits from five benchmark folds and \texttt{prior\_B.npz}, the prior trained on all benchmarks (SHA-256 \texttt{486b104f\ldots}). The encoder comparison runs \texttt{feat\_bakeoff.py} and \texttt{train\_eval2.py} with \texttt{--item-keys-file} on the 600-item subset. The subject offsets come from \texttt{python colab\_jobs/fit\_subject\_priors.py}, which writes \texttt{date\_prior.json}, \texttt{v5/name\_ability.json} and \texttt{name\_ability\_folds.json} and reproduces our files exactly.
 
-\paragraph{3. Test-pool statistics and simulations (local CPU).} The first command computes the statistics of Section~\ref{sec:testpool}. The others reproduce Table~\ref{tab:ladder}, Figure~\ref{fig:budget}, Figure~\ref{fig:testpool}b and Section~\ref{sec:res-side}, the runtime replays and the encoder cost. The baseline script reuses the ladder's draws, and \texttt{make\_numbers.py} stops if they differ.
+\paragraph{3. Test-pool statistics and simulations (local CPU).} The first command computes the statistics of Section~\ref{sec:testpool} and Appendix~\ref{app:sim}. The others reproduce Tables~\ref{tab:ladder} and~\ref{tab:ladderfull}, Figure~\ref{fig:budget}, Figure~\ref{fig:testpool}b and Section~\ref{sec:res-side}, the runtime replays and the encoder cost. The baseline script reuses the ladder's draws, and \texttt{make\_numbers.py} stops if they differ.
 \begin{lstlisting}
 cd reports/paiec_v5_report
 python -B scripts/test_pool_stats.py
@@ -431,7 +375,7 @@ python -B scripts/sim_ladder.py --tag recent_conf --min-date 2025-01-01 --seed0 
 python -B scripts/sim_baselines.py --tag recent_conf --min-date 2025-01-01 --seed0 300000  # also all_conf
 python -B scripts/sim_baselines.py --tag recent_conf --min-date 2025-01-01 --seed0 300000 --only beta,L3,L3_own \
   --out baselines_l3                                                                       # also all_conf
-python -B scripts/side_of_half.py                                                        # Section 7.4
+python -B scripts/side_of_half.py                                                        # side of 50%
 python -B scripts/sim_confirm.py --draws 600 --seed0 100000                              # Figure 1
 python -B scripts/extra_stats.py                                                         # judge, name ability, replays
 cd ../.. && EX=bertaqa,cellverse,cruxeval,engdesign,erbench,kernelbench,liveaopsbench,researchcodebench,tau2_bench
@@ -466,10 +410,55 @@ cd reports/paiec_v5_report && python -B scripts/make_numbers.py && python -B scr
 pdflatex main.tex && pdflatex main.tex
 \end{lstlisting}
 
-\section{Hyperparameters and prompts}
+\section{Training corpus}
+\label{app:data}
+All training data come from measurement-db at revision \texttt{54074453}~\citep{mdb}.
+Of its \NBenchAll\ benchmarks, \NBenchBinary\ have binary responses.
+We did not download \NBenchNotFetched\ of them (\SkippedFetch), which have one to three subjects each and include two with more than 500,000 items, and \NBenchNoBinary\ more had no binary rows.
+Each of the remaining \NBenchKept\ benchmarks keeps at most 4,000 items, the ones answered by the most subjects, and we store the number of recorded trials $n$ and successes $k$ of every subject-item pair.
+A subject is the exact tuple of its eight fields, so one base model under another harness is a different subject.
+Of the \NSubjectConfigs\ subject configurations, \PctName\% have a model name, \PctRelease\% a release date and \PctEffort\% a reasoning effort.
+
+\begin{table}[ht]
+\centering
+\caption{\textbf{\VF\ trains on about \TrialRatio\ times more recorded responses than V3.} Groups are subject-benchmark pairs. Accuracies are benchmark-weighted means over groups with at least 80 items.}
+\label{tab:corpus}
+\small
+\begin{tabular}{lrr}
+\toprule
+ & V3 training data & \VF\ corpus \\
+\midrule
+Benchmarks & 5 & \NBenchKept \\
+Recorded binary responses & \VthreeResponses & \NTrials \\
+Subject-item pairs and items & & \NPairs\ and \NItems \\
+Subject configurations (with responses) & & \NSubjectConfigs\ (\NSubjectsWithPairs) \\
+Groups with at least 80 items & \VthreeGroups\ (all sizes) & \NGroupsEighty\ on \NBenchGroupsEighty\ benchmarks \\
+Mean group accuracy, all subjects & & \TrainP\ (\TrainAbove\% above 0.5) \\
+Mean group accuracy, released from July 2025 & & \RecentP\ (\RecentAbove\% above 0.5) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Model details and hyperparameters}
 \label{app:hyper}
+\paragraph{Prior network.} Items and subjects are embedded with the frozen \texttt{intfloat/multilingual-e5-small} encoder~\citep{e5} at revision \texttt{614241f}, with the recipe of V3. An item text is its metadata line followed by its task, and a subject text lists its fields. Two towers, each a two-layer perceptron with 256 Gaussian error linear units, map the subject input (E5 vector and release date) and the item input (E5 vector and text length) to $h_s$ and $h_i$. The logit is $z_{si} = a(h_s) + b(h_i) + \langle U h_s, V h_i\rangle/\sqrt{32}$ with linear heads $a$, $b$ and rank-32 projections $U$, $V$. Training minimizes the binomial log loss of the counts $(n,k)$ of every pair, with weight $1/(nT_g)$ for a pair in group $g$ with $T_g$ trials. Each benchmark gets a free offset during training, and the mean offset is folded into the intercept afterwards.
+
+\paragraph{Item shift.} The item shift uses residuals of the labeled pairs under the level model. For labeled pair $j$ with subject $s_j$ and item $i_j$, let $\hat p_j=\sigma(\gamma z_j + o_{s_j} + m_{s_j})$, $r_j = y_j-\hat p_j$ and $w_j=\hat p_j(1-\hat p_j)$, where $m_s$ is the posterior mean of $c+d_s$, $o_s$ the fixed subject offset of L4 and L5 (zero in L3) and $y_j$ the label. For a kernel $K$ with prior variance $\sigma_K^2$,
+\begin{equation}
+u_i = \sum_{K} \frac{\sigma_K^2 \sum_j K(i,i_j)\, r_j}{1+\sigma_K^2\sum_j K(i,i_j)\, w_j},
+\label{eq:shift}
+\end{equation}
+which is one Newton step from zero for an offset shared by the target item and the labeled items, weighted by $K$.
+The same-item kernel $K(i,i')=\mathbf 1[i=i']$ has variance $\sigma_e^2$. The similar-item kernel $K(i,i')=\exp\bigl((\cos(e_i,e_{i'})-1)/h\bigr)$ on E5 vectors has bandwidth $h$ and variance $\sigma_k^2$.
+With $\eta^*_{si}=\gamma z_{si}+o_s+m_s+u_i$ and $v_s$ the posterior variance of $c+d_s$, the prediction is $p_{si}=\sigma\bigl(\eta^*_{si}/\sqrt{1+\pi v_s/8}\bigr)$~\citep{mackay}.
+L3 uses $\sigma_e^2=1$, $h=0.03$ and $\sigma_k^2=3$. The narrow models use $\tau_c=1.2$, $\tau_d=0.6$ and $\sigma_e^2=2$.
+
+\paragraph{Date and name offsets.} The fixed offset $o_s$ adds two subject priors fitted on training groups with at least 80 items. The date prior is $\DateA + \DateB\,t$, with $t$ the years from 2023-01-01 to the release date clipped to $[-3,4]$, and $\DateAzero$ for an unknown date, fitted by benchmark-weighted least squares to group logit accuracy. The name ability of a normalized model name is the mean, over its training groups, of the group logit minus the benchmark's mean logit, shrunk with a pseudo-count of 2 and clipped to $\pm2.5$. It enters with weight 0.8, and the submission holds \NameCount\ names. In simulation the name ability comes from the four other benchmark folds only. There it has a positive within-benchmark Spearman correlation with group accuracy on \NamePos\% of \NameBench\ held-out benchmarks with at least five named groups (median \NameMedian).
+
+\paragraph{Final archive.} L3 holds the E5 weights, the prior network and the code (\ArchiveFinalMB\ megabytes) and declares no \texttt{models.txt}. It runs on CPU with one prediction worker, which the platform restarts at every budget, so the encoder runs again for each budget. Caches of embeddings, logits and level fits are keyed by content hashes, so no prediction depends on earlier calls.
+
 \paragraph{Text projection.} Each text gets the E5 query prefix, and hidden states are mean-pooled under the attention mask and normalized to unit length. Texts longer than 8,192 characters keep a head, a middle and a tail span. After tokenization, inputs longer than 510 tokens keep four spans of 128, 127, 127 and 128 tokens spread evenly over the text. A JSON chat transcript that ends in a user turn keeps up to 512 characters of system messages and the final user message. The item text is the first 300 characters of the item features followed by this projection. The subject text lists name, provider, release date, harness with version, reasoning effort and the first 300 characters of the extras.
-\paragraph{Prior.} Subject input is the E5 vector, the years from 2023 to the release date clipped to $\pm5$ and a missing-date flag. Item input is the E5 vector and $\log(1+\text{characters})/10$. Hidden width 256, rank 32, dropout 0.1, AdamW~\citep{adamw} with learning rate $2\times10^{-3}$ and weight decay $10^{-4}$, one-cycle schedule with 10\% warm-up, batch 8,192, 4 epochs, seed 99 for the final prior and the fold index for fold priors.
+\paragraph{Prior training.} Subject input is the E5 vector, the years from 2023 to the release date clipped to $\pm5$ and a missing-date flag. Item input is the E5 vector and $\log(1+\text{characters})/10$. Hidden width 256, rank 32, dropout 0.1, AdamW~\citep{adamw} with learning rate $2\times10^{-3}$ and weight decay $10^{-4}$, one-cycle schedule with 10\% warm-up, batch 8,192, 4 epochs, seed 99 for the final prior and the fold index for fold priors.
 \paragraph{Leave-benchmark-out grid.} The grid crosses $\tau_c\in\{0.8,1.2,1.8,2.5,3.5\}$ with $\tau_d\in\{0.5,0.8,1.2\}$ and $\gamma\in\{0.3,0.45,0.6,0.75,0.9\}$, 75 configurations in total. The first run used $\gamma$ from \LoboInitGammaMin\ upward and was \LoboInitRelAbs\% worse than \BB.
 \paragraph{Simulator grids.} Newton iterations stop after 25 steps or when the largest step is below $10^{-7}$. All three grids of the official-structure simulator used \GridDraws\ development draws and include the Beta(1,1) baseline. Here $\gamma=0$ means no text prior.
 Grid 1 (no test weights, all subjects, \GridN\ configurations) crossed $\tau_c\in\{0.9,1.2,1.6\}$, $\tau_d\in\{0.6,0.8,1.1\}$, $\sigma_e^2\in\{2,4,8\}$, $h\in\{0.02,0.03,0.05\}$, $\sigma_k^2\in\{1,1.5,3\}$ and $\gamma\in\{0,0.3\}$. Its best difference was \GridDiff\ (standard error \GridSe), and it chose the narrow configuration.
@@ -478,6 +467,51 @@ Grid 3 (earlier test-weight shares, subjects from 2025, 326 configurations with 
 Top lines are in \texttt{colab\_jobs/results/sim\_testw\_grid2.log} and \texttt{sim\_grid3\_recent.log}.
 Of the 600 draws of the unweighted confirmation run, \ConfNine\ hold 9 groups, \ConfEight\ hold 8 and \ConfSeven\ hold 7.
 \paragraph{Judge prompt.} The system message reads ``You estimate how hard a task is for current frontier AI systems. Read the task and rate its difficulty on a scale from 1 to 9, where 1 means almost every AI system solves it correctly and 9 means almost none does. Answer with a single digit only.'' The user message is ``Task:'' followed by the item text, truncated to 1,024 tokens of head and tail, and ``Difficulty (1-9):''. Thinking mode is off.
+
+\section{Simulator, test weights and the side of 50\%}
+\label{app:sim}
+\paragraph{Baseline.} The \BB\ baseline predicts $(k+a)/(m+2a)$ for every evaluation item of a group with $m$ revealed labels and $k$ successes. Simulations use $a=1$ and the official archive uses $a=2$, which is worse by \ConfBetaTwoAbs\ ALC in simulation (standard error \ConfBetaTwoSe).
+
+\paragraph{Leave-benchmark-out simulation.} We split the \NBenchKept\ benchmarks into \LoboFolds\ random folds, train the prior on four and simulate on groups of the fifth with at least 80 items, subsampled to 80 to 160 items. Draws of the level model collect groups up to 1,000 items, 60 per fold, from \LoboGroups\ held-out groups.
+
+\paragraph{Official-structure simulator.} A draw picks 2 benchmarks whose two sampled subjects share 88 to 152 items and 5 benchmarks with one subject, and drops groups beyond 1,000 items, so most draws hold 8 groups. Each group is split in half independently. Base logits come from the prior trained without the pair's benchmark fold. Options restrict subjects to those released from 2025 (\LadRDBench\ benchmarks) and apply test weights. Seeds 0 to 599 serve development, the tuning grids used \GridDraws\ of them, and 600 seeds from 100,000, 200,000 and 300,000 serve one confirmation run each. Standard errors treat the draw as the unit.
+
+\paragraph{Runtime replays and formative runs.} We ran the real V2 and V3 submission code on the simulator's draws (recent subjects, seeds from 0) and paired each group with the simulator's L3, L5 and \BB\ rows. These draws exclude the nine benchmarks that V2 or V3 trained or tuned on. On the platform each submission is scored on a new random draw, so we resubmit an archive several times and report the mean and standard error across runs.
+
+\paragraph{Test weights.} For a group whose prediction is one constant $q$, the Brier score is $p(1-p)+(q-p)^2$ and the expected calibration error is $|q-p|$. The official baseline therefore gives $|p-0.5|$ at budget 0 for every group, and $p(1-p)=B_{31}-\mathrm{ECE}_{31}^2$ agrees with it to $10^{-6}$. The shares of $|p-0.5|$ in the bins $[0,0.1)$, $[0.1,0.2)$, $[0.2,0.3)$, $[0.3,0.4)$ and $[0.4,0.5]$ are \TpShareOwn. The tuning grids used an earlier estimate (\TpShareSim) that placed one group in a different bin, and all confirmation runs use the shares above. With test weights the simulated Beta(2,2) baseline scores \SimBtwoACO\ on all subjects and \SimBtwoRCO\ on recent subjects, against \SimBtwoACU\ and \SimBtwoRCU\ without them. The three weight runs average \OffBetaMean\ (standard error \OffBetaSe). Later runs, made after the model choice, scored \OffBetaLaterRuns, and all \OffBetaAllN\ runs average \OffBetaAllMean\ (standard error \OffBetaAllSe). Under the shares of the \TpLaterGroups\ less extreme evaluations of the later runs, the gaps of L3 to Beta(1,1) and to L2c are \ShLaterRCLthreeBeta\ and \ShLaterRCLthreeLtwoc. Official runs of V2 (mean \OffVtwoMean, \OffVtwoN\ runs) and V3 (\OffVthreeMean, \OffVthreeN) lie within one standard error of the Beta(2,2) mean. Only such aggregate statistics and per-archive scores enter model selection.
+
+\paragraph{Absolute results.} Table~\ref{tab:ladderfull} gives the first two columns of Table~\ref{tab:ladder} as absolute ALC differences and adds all subjects and some variants. In the wide level model, sharing only the benchmark offset is worth \PairRCLevelShareOAbs\ (standard error \PairRCLevelShareOSe) under test weights on recent subjects and needs no shared items, and the same-item step adds \PairRCExactStepOAbs.
+
+\begin{table}[ht]
+\centering
+\caption{\textbf{Simulator results in absolute ALC.} Official-structure simulator, the same 600 confirmation draws (seeds from 300,000) in each population. The first row is the Beta(1,1) ALC, other rows are differences from it, lower is better. Standard errors are 0.0001 to 0.0003 per cell.}
+\label{tab:ladderfull}
+\small
+\begin{tabular}{lrrrr}
+\toprule
+Subjects & all & all & recent & recent \\
+Test weights & no & yes & no & yes \\
+\midrule
+\BB\ ALC & \LadACUBeta & \LadACOBeta & \LadRCUBeta & \LadRCOBeta \\
+\BB, Beta(0.5,0.5) & \LadACUBhalf & \LadACOBhalf & \LadRCUBhalf & \LadRCOBhalf \\
+\BB, Beta(2,2), official prior & \LadACUBtwo & \LadACOBtwo & \LadRCUBtwo & \LadRCOBtwo \\
+L1c, narrow level + same item & \LadACULonec & \LadACOLonec & \LadRCULonec & \LadRCOLonec \\
+L2c, narrow, all sharing + E5 prior & \LadACULtwoc & \LadACOLtwoc & \LadRCULtwoc & \LadRCOLtwoc \\
+Wide level model & \LadACUWlevel & \LadACOWlevel & \LadRCUWlevel & \LadRCOWlevel \\
+\quad + same item & \LadACUWexact & \LadACOWexact & \LadRCUWexact & \LadRCOWexact \\
+\quad + similar items & \LadACUWkernel & \LadACOWkernel & \LadRCUWkernel & \LadRCOWkernel \\
+\quad + E5 prior, $\gamma=0.3$ (L3, final) & \LadACULthree & \LadACOLthree & \LadRCULthree & \LadRCOLthree \\
+\quad + date prior (L4) & \LadACULfour & \LadACOLfour & \LadRCULfour & \LadRCOLfour \\
+\quad + name ability (L5) & \LadACULfive & \LadACOLfive & \LadRCULfive & \LadRCOLfive \\
+L5 without the E5 prior & \LadACULfivent & \LadACOLfivent & \LadRCULfivent & \LadRCOLfivent \\
+Wide level model, own labels only & \LadACUWown & \LadACOWown & \LadRCUWown & \LadRCOWown \\
+L3, own labels only & \LadACULthreeown & \LadACOLthreeown & \LadRCULthreeown & \LadRCOLthreeown \\
+L6, best of a grid on recent dev draws & \LadACULsix & \LadACOLsix & \LadRCULsix & \LadRCOLsix \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Side of 50\%.} On the platform the budget-0 Brier score was \SideBzeroLthree\ for L3 (standard error \SideBzeroLthreeSe, \SideBzeroLthreeGroups\ group evaluations), \SideBzeroLfour\ for L4 (\SideBzeroLfourSe) and \SideBzeroLfive\ for L5 (\SideBzeroLfiveSe). We reweight simulated groups within each $|p-0.5|$ bin so that a share $\pi$ lies below 0.5. At the training share of \SideTrainShare\ the simulated budget-0 gap between L4 and L3 is \SideGapLfourSimTrain, and even at $\pi=1$ it reaches only \SideGapLfourSimMax, below the official \SideGapLfour\ (standard error \SideGapLfourSe). The one-sided lower 95\% bound of the official gap needs $\pi\ge\SidePiLow$ (two-sided, \SidePiLowTwo). No single share fits all three archives. The official L4 and L5 scores alone \SidePiFromPhrase, and the L4 score alone needs $\pi\ge\SidePiFromLfourLow$, but the simulated L3 rises to \SideLthreeSimAtLow\ at $\pi=\SidePiLow$ against its official \SideBzeroLthree, which alone points to \SidePiFromLthree. The gap between L4 and L3 removes the part they share, the text prior, so we use it. L5 beats L3 only for $\pi<\SideBreakeven$. L3 is better by \SideFiveThreeLowAbs\ at $\pi=\SidePiLow$ and by \SideFiveThreeOneAbs\ at $\pi=1$ (standard errors about 0.0001), and the tuned L6, with larger offsets, falls behind \BB\ for $\pi>\SideLsixCross$. The difference of L3 from Beta(1,1) stays between \SideThreeLo\ and \SideThreeHi\ over the whole range. On all subjects L5 and L3 differ by at most \SideAllLoAbs, because older subjects get small offsets. Figure~\ref{fig:testpool}b has standard errors of at most \SidePlotSe.
 
 \section{Leave-benchmark-out results and runtime replays}
 \label{app:extra}
